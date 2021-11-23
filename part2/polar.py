@@ -93,28 +93,28 @@ def get_hmm_rows(edge_strength):
     ncols = edge_strength.shape[1]
     nrows = edge_strength.shape[0]
 
-    # # trying viterbi as minimum cost function..
     emission_probs = -np.log(edge_strength/np.sum(edge_strength, axis = 0))
     V_table = np.ones((nrows, ncols))
     V_table[:,0] = emission_probs[:,0]
 
-    # # calculation for transition probabilities
+    # # calculation for viterbi table 
+    # as minimum cost function
 
-
+    # Calculation for air ice boundary
     for t in range(1, edge_strength.shape[1]):
         for row in range(edge_strength.shape[0]):
             distance_distr = get_distance_distr(row, edge_strength.shape[0])
             transition = -log(distance_distr/sum(distance_distr))
             V_table[row,t] = min(V_table[:,t-1]+transition+emission_probs[row, t])
             
-            #V_table_ir[row, t] = sorted(V_table_ir[:,t-1]+transition)[-2]+emission_probs[row, t]
     ridge = V_table.argmin(axis=0)
 
+    # Calculation for ice-rock boundary
     max_cost = max(emission_probs[:,0])
     for r in ridge:
         emission_probs[r,0] = max_cost
-    V_table_ir = np.ones((nrows, ncols))*100000
 
+    V_table_ir = np.ones((nrows, ncols))*100000
     V_table_ir[:,0] = emission_probs[:,0]
 
     for t in range(1, edge_strength.shape[1]):
@@ -128,9 +128,8 @@ def get_hmm_rows(edge_strength):
 
 def get_feedback_rows_air_ice(edge_strength, row_coord, col_coord):
     edge_strength = edge_strength+1
-    # compute emission probabilities
-    emission_probs = edge_strength/sum(edge_strength, axis = 0)
 
+    emission_probs = edge_strength/sum(edge_strength, axis = 0)
     emission_probs = -np.log(emission_probs)
 
     #create viterbi matrix
@@ -164,7 +163,7 @@ def get_feedback_rows_ice_rock(edge_strength, row_coord, col_coord, air_ice):
 
     emission_probs = -np.log(emission_probs)
 
-    #create viterbi matrix
+    #create viterbi table
     V_table = np.ones((edge_strength.shape[0], edge_strength.shape[1]))*10000
     V_table[:,0] = emission_probs[:,0]
     V_table[:,col_coord] = emission_probs[:,col_coord]
@@ -206,6 +205,7 @@ if __name__ == "__main__":
     edge_strength = edge_strength(input_image)
     
     simple_bayes = get_bayes_rows(edge_strength)
+    hmm_bayes = get_hmm_rows(edge_strength)
 
     imageio.imwrite('edges.png', uint8(255 * edge_strength / (amax(edge_strength))))
 
@@ -213,24 +213,14 @@ if __name__ == "__main__":
     # just create some random lines.
 
     airice_simple = simple_bayes[0]
-    #[ image_array.shape[0]*0.25 ] * image_array.shape[1]
 
-    hmm_bayes = get_hmm_rows(edge_strength)
     airice_hmm = hmm_bayes[0]
-    #[ image_array.shape[0]*0.5 ] * image_array.shape[1]
     airice_feedback= get_feedback_rows_air_ice(edge_strength,gt_airice[1], gt_airice[0] )
-    #[ image_array.shape[0]*0.75 ] * image_array.shape[1]
-    #[ image_array.shape[0]*0.75 ] * image_array.shape[1]
-    #get_feedback_rows(edge_strength, gt_airice[0], gt_airice[1])
-    #[ image_array.shape[0]*0.75 ] * image_array.shape[1]
+
 
     icerock_simple = simple_bayes[1]
-    #[ edge_strength+10 ] * image_array.shape[1]
     icerock_hmm = hmm_bayes[1]
-    #[ image_array.shape[0]*0.5 ] * image_array.shape[1]
-    #hmm_bayes[1]
     icerock_feedback= get_feedback_rows_ice_rock(edge_strength, gt_icerock[1],gt_icerock[0],airice_feedback)
-    #[ image_array.shape[0]*0.75 ] * image_array.shape[1]
 
     # Now write out the results as images and a text file
     write_output_image("air_ice_output.png", input_image, airice_simple, airice_hmm, airice_feedback, gt_airice)
