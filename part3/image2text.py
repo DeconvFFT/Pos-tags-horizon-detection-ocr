@@ -13,6 +13,31 @@ import sys
 CHARACTER_WIDTH=14
 CHARACTER_HEIGHT=25
 
+# def calculate_emission_probabilities(train_letters,test_letters):
+#     emission_probabilities = {}
+#     emission_count = {}
+#     for letter in range(len(test_letters)):
+#         emission_probabilities[letter] = {}
+#         emission_count[letter] = {}
+#         for train in train_letters:
+#             number_matching_pixels = len([(train_letters[train][x][y],test_letters[letter][x][y]) for x in range(CHARACTER_HEIGHT) \
+#                             for y in range(CHARACTER_WIDTH) if (train_letters[train][x][y]==test_letters[letter][x][y] and test_letters[letter][x][y]=='*')])
+#             if len([x for x in range(CHARACTER_HEIGHT) for y in range(CHARACTER_WIDTH) if test_letters[letter][x][y]=='*']) < 20:    
+#                 if train==' ' and number_matching_pixels < 5:
+#                     emission_count[letter][train] = 5
+#                 else:
+#                     emission_count[letter][train] = number_matching_pixels
+#             else:   
+#                 emission_count[letter][train] = number_matching_pixels
+#     for letter in range(len(test_letters)):
+#         for train in train_letters:
+#             prob = round(emission_count[letter][train] / sum(emission_count[letter].values()),6)
+#             if prob==0:
+#                 emission_probabilities[letter][train] = round(1/99999999,6)
+#             else:
+#                 emission_probabilities[letter][train] = prob
+#     return emission_probabilities
+
 def calculate_emission_probabilities(train_letters,test_letters):
     emission_probabilities = {}
     emission_count = {}
@@ -20,15 +45,12 @@ def calculate_emission_probabilities(train_letters,test_letters):
         emission_probabilities[letter] = {}
         emission_count[letter] = {}
         for train in train_letters:
-            number_matching_pixels = len([(train_letters[train][x][y],test_letters[letter][x][y]) for x in range(CHARACTER_HEIGHT) \
+            number_matching_pixels_pixels = len([(train_letters[train][x][y],test_letters[letter][x][y]) for x in range(CHARACTER_HEIGHT) \
                             for y in range(CHARACTER_WIDTH) if (train_letters[train][x][y]==test_letters[letter][x][y] and test_letters[letter][x][y]=='*')])
-            if len([x for x in range(CHARACTER_HEIGHT) for y in range(CHARACTER_WIDTH) if test_letters[letter][x][y]=='*']) < 15:    
-                if train==' ' and number_matching_pixels < 5:
-                    emission_count[letter][train] = 10
-                else:
-                    emission_count[letter][train] = number_matching_pixels
-            else:   
-                emission_count[letter][train] = number_matching_pixels
+            number_of_empty_pixels = len([(train_letters[train][x][y],test_letters[letter][x][y]) for x in range(CHARACTER_HEIGHT) \
+                            for y in range(CHARACTER_WIDTH) if (train_letters[train][x][y]==test_letters[letter][x][y] and test_letters[letter][x][y]==' ')])
+            emission_cost = (number_matching_pixels_pixels) * 0.80 + (number_of_empty_pixels) * 0.20
+            emission_count[letter][train] = emission_cost
     for letter in range(len(test_letters)):
         for train in train_letters:
             prob = round(emission_count[letter][train] / sum(emission_count[letter].values()),6)
@@ -69,7 +91,10 @@ def calculate_transition_probabilities(data,total_letter_list):
                 transition_count[word[word_index-1]][word[word_index]] += 1
     for letter in total_letter_list:
         for next_letter in total_letter_list:
-            prob = round(transition_count[letter][next_letter] / sum(transition_count[letter].values()),6)
+            if transition_count[letter] == 0:
+                prob = round(transition_count[letter][next_letter] / sum(transition_count[letter].values()),6)
+            else:
+                prob = round(transition_count[letter][next_letter] / 1,6)
             if prob == 0:
                 transition_probabilities[letter][next_letter] = round(1/99999999,6)
             else:
@@ -104,7 +129,17 @@ def read_data(fname):
         exemplars += data[0::2]
     return exemplars
 
-# def bayes()
+def calculate_using_bayes(test_letters,train_letters):    
+    emission_probabilities = calculate_emission_probabilities(train_letters,test_letters)
+    bayes_string = ''
+    for letter in emission_probabilities:
+        max_key = max(emission_probabilities[letter], key=emission_probabilities[letter].get)
+        bayes_string += max_key
+    return bayes_string
+    
+def calculated_using_viterbi(data,train_word_list,test_letters,train_letters):
+    initial_probabilities = calculate_initial_probabilities(data, TRAIN_LETTERS)
+    transition_probabilities = calculate_transition_probabilities(data, TRAIN_LETTERS)
 
 #####
 # main program
@@ -117,13 +152,10 @@ test_letters = load_letters(test_img_fname)
 TRAIN_LETTERS="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789(),.-!?\"' "
 data = read_data(train_txt_fname)
 
-emission_probabilities = calculate_emission_probabilities(train_letters,test_letters)
-initial_probabilities = calculate_initial_probabilities(data, TRAIN_LETTERS)
-# print(initial_probabilities)    
-
-transition_probabilities = calculate_transition_probabilities(data, TRAIN_LETTERS)
+bayes = calculate_using_bayes(test_letters,train_letters)
 
 
+viterbi = calculated_using_viterbi(data,TRAIN_LETTERS,test_letters,train_letters)
 # for i in train_letters:
     # print("\n".join([ r for r in train_letters[i]]))
 
@@ -152,7 +184,7 @@ transition_probabilities = calculate_transition_probabilities(data, TRAIN_LETTER
 
 
 # The final two lines of your output should look something like this:
-print("Simple: " + "Sample s1mple resu1t")
+print("Simple: " + bayes)
 print("   HMM: " + "Sample simple result") 
 
 
