@@ -65,7 +65,7 @@ def draw_asterisk(image, pt, color, thickness):
 def write_output_image(filename, image, simple, hmm, feedback, feedback_pt):
     new_image = draw_boundary(image, simple, (255, 255, 0), 2)
     new_image = draw_boundary(new_image, hmm, (0, 0, 255), 2)
-    new_image = draw_boundary(new_image, feedback, (255, 0, 0), 2)
+   # new_image = draw_boundary(new_image, feedback, (255, 0, 0), 2)
     new_image = draw_asterisk(new_image, feedback_pt, (255, 0, 0), 2)
     imageio.imwrite(filename, new_image)
 
@@ -77,13 +77,15 @@ def get_bayes_rows(edge_strength):
         edge_col = edge_strength[:,col]
         edge_col_tmp = sorted(edge_col)
         max1 = edge_col_tmp[-1]
-        max2 = edge_col_tmp[-2]
         idx1 = np.where(edge_col == max1)[0][0]
-        idx2 = np.where(edge_col == max2)[0][0]
         max_rows_list.append(idx1)
-        if(abs(idx2-idx1)>=10):
-            next_rows_list.append(idx2)
-        
+    median_air_ice_row = int(median(max_rows_list))
+    for col in range(edge_strength.shape[1]):
+        next_rows_list+=[(np.argmax(edge_strength[median_air_ice_row+10:,col]))]
+    print(f'next_rows_list:{next_rows_list}')
+    next_rows_list = [row + median_air_ice_row+10 for row in next_rows_list]
+    print(f'next_rows_list1:{next_rows_list}')
+
     return (max_rows_list, next_rows_list)
 
 # 
@@ -116,14 +118,14 @@ def get_hmm_rows(edge_strength):
 
     V_table_ir = np.ones((nrows, ncols))*100000
     V_table_ir[:,0] = emission_probs[:,0]
+    median_air_ice_row = int(median(ridge))
 
     for t in range(1, edge_strength.shape[1]):
-            for row in range(ridge[t-1]+10, edge_strength.shape[0]):
+            for row in range(median_air_ice_row+10, edge_strength.shape[0]):
                 distance_distr = get_distance_distr(row, edge_strength.shape[0])
                 transition = -log(distance_distr/sum(distance_distr))
                 V_table_ir[row, t] = min(V_table_ir[:,t-1]+transition+emission_probs[row, t])
     ridge1 = V_table_ir.argmin(axis=0)
-
     return (ridge,ridge1)
 
 def get_feedback_rows_air_ice(edge_strength, row_coord, col_coord):
