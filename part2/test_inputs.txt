@@ -1,0 +1,2 @@
+python3 polar.py test_images/23.png 23 22 111 106
+python3 polar.py test_images/09.png 23 22 9 53 
