@@ -9,6 +9,7 @@
 
 from PIL import Image, ImageDraw, ImageFont
 import sys
+import numpy as np
 
 CHARACTER_WIDTH=14
 CHARACTER_HEIGHT=25
@@ -33,7 +34,7 @@ CHARACTER_HEIGHT=25
 #         for train in train_letters:
 #             prob = round(emission_count[letter][train] / sum(emission_count[letter].values()),6)
 #             if prob==0:
-#                 emission_probabilities[letter][train] = round(1/99999999,6)
+#                 emission_probabilities[letter][train] = round(1/999999,6)
 #             else:
 #                 emission_probabilities[letter][train] = prob
 #     return emission_probabilities
@@ -53,9 +54,9 @@ def calculate_emission_probabilities(train_letters,test_letters):
             emission_count[letter][train] = emission_cost
     for letter in range(len(test_letters)):
         for train in train_letters:
-            prob = round(emission_count[letter][train] / sum(emission_count[letter].values()),6)
+            prob = round(emission_count[letter][train] / sum(emission_count[letter].values()),25)
             if prob==0:
-                emission_probabilities[letter][train] = round(1/99999999,6)
+                emission_probabilities[letter][train] = round(1/999999999999999999999999,25)
             else:
                 emission_probabilities[letter][train] = prob
     return emission_probabilities
@@ -69,9 +70,9 @@ def calculate_initial_probabilities(data,total_letter_list):
         if word[0] in total_letter_list:
             initial_count[word[0]] += 1
     for dict_letter in initial_count:
-        prob = round(initial_count[dict_letter] / sum(initial_count.values()),6)
+        prob = round(initial_count[dict_letter] / sum(initial_count.values()),25)
         if prob==0:
-            initial_probabilities[dict_letter] = round(1/99999999,6)
+            initial_probabilities[dict_letter] = round(1/999999999999999999999999,25)
         else:
             initial_probabilities[dict_letter] = prob
     return initial_probabilities
@@ -85,21 +86,18 @@ def calculate_transition_probabilities(data,total_letter_list):
         transition_probabilities[letter] = {}
         for next_letter in total_letter_list:
             transition_count[letter][next_letter] = 0
+            transition_probabilities[letter][next_letter] = round(1/999999999999999999999999,25)
     for word in data:
         for word_index in range(1,len(word)):
             if (word[word_index] in total_letter_list) and (word[word_index-1] in total_letter_list):
                 transition_count[word[word_index-1]][word[word_index]] += 1
     for letter in total_letter_list:
         for next_letter in total_letter_list:
-            if transition_count[letter] == 0:
-                prob = round(transition_count[letter][next_letter] / sum(transition_count[letter].values()),6)
+            if sum(transition_count[letter].values()) != 0 and round(transition_count[letter][next_letter] / sum(transition_count[letter].values()),6) != 0:
+                transition_probabilities[letter][next_letter] = round(transition_count[letter][next_letter] / sum(transition_count[letter].values()),6)
             else:
-                prob = round(transition_count[letter][next_letter] / 1,6)
-            if prob == 0:
-                transition_probabilities[letter][next_letter] = round(1/99999999,6)
-            else:
-                transition_probabilities[letter][next_letter] = prob
-    return transition_count
+                pass
+    return transition_probabilities
 
     
 
@@ -138,8 +136,47 @@ def calculate_using_bayes(test_letters,train_letters):
     return bayes_string
     
 def calculated_using_viterbi(data,train_word_list,test_letters,train_letters):
-    initial_probabilities = calculate_initial_probabilities(data, TRAIN_LETTERS)
-    transition_probabilities = calculate_transition_probabilities(data, TRAIN_LETTERS)
+    emission_probabilities = calculate_emission_probabilities(train_letters,test_letters)
+    test_string = ''
+    for letter in emission_probabilities:
+        max_key = max(emission_probabilities[letter], key=emission_probabilities[letter].get)
+        test_string += max_key
+    
+    initial_probabilities = calculate_initial_probabilities(data,train_word_list)
+    transition_probabilities = calculate_transition_probabilities(data, train_word_list)
+    
+    words_separated = test_string.split(' ')
+    counter = 0
+    for word in words_separated:
+        storing_probabilities = np.ones((len(train_word_list),len(word)))
+        storing_letter = np.ones((len(train_word_list),len(word)))
+        print(storing_probabilities.shape)
+        for letter in range(len(word)):
+            for train in range(len(train_word_list)):
+                if letter==0:
+                    storing_probabilities[train][letter] =initial_probabilities[word[letter]] * emission_probabilities[counter][train_word_list[train]]
+                    storing_letter[train][letter] = 0
+                else:
+                    storing_probabilities[train][letter] = np.max([storing_probabilities[t][letter-1]*transition_probabilities[train_word_list[t]][train_word_list[train]]
+                            *emission_probabilities[counter][train_word_list[train]] for t in range(len(train_word_list))])
+                    storing_letter[train][letter] = int(np.argmax([storing_probabilities[t][letter-1]*transition_probabilities[train_word_list[t]][train_word_list[train]] 
+                            *emission_probabilities[counter][train_word_list[train]] for t in range(len(train_word_list))]))
+                    # print(word[letter],train_word_list[train],train_word_list[int(storing_letter[train][letter])])
+
+            counter+=1
+        
+        temp_best_pointer =np.argmax([storing_probabilities[t][len(word)-1] for t in range(len(train_word_list))])
+        backtrack = []
+        for back_pos in range(len(word)-1,-1,-1):
+            backtrack.append(train_word_list[int(temp_best_pointer)]) 
+            # print(back_pos)
+            temp_best_pointer = int(storing_letter[temp_best_pointer][back_pos-1])
+            # print('it worked')
+        print(backtrack)
+        # print(best_word_string)
+        counter+=1
+    return 'now'
+
 
 #####
 # main program
@@ -153,6 +190,15 @@ TRAIN_LETTERS="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789(),
 data = read_data(train_txt_fname)
 
 bayes = calculate_using_bayes(test_letters,train_letters)
+
+emission_probabilities = calculate_emission_probabilities(train_letters,test_letters)
+
+initial_probabilities = calculate_initial_probabilities(data,TRAIN_LETTERS)
+
+transition_probabilities = calculate_transition_probabilities(data, TRAIN_LETTERS)
+
+print("Initial:",initial_probabilities['G'])
+print("Emission:",emission_probabilities[0]['A'])
 
 
 viterbi = calculated_using_viterbi(data,TRAIN_LETTERS,test_letters,train_letters)
