@@ -11,7 +11,6 @@ from numpy import *
 from scipy.ndimage import filters
 import sys
 import imageio
-import matplotlib.pyplot as plt
 from scipy.stats import norm
 
 import numpy as np
@@ -205,20 +204,9 @@ if __name__ == "__main__":
 
     # compute edge strength mask -- in case it's helpful. Feel free to use this.
     edge_strength = edge_strength(input_image)
-    # print(edge_strength, edge_strength.shape)
-    # print(image_array[:,0], len(image_array[:,0]))
-    # print(edge_strength[:,0], len(edge_strength[:,0]))
-    # # fig, ax = plt.subplots(2, 1)
-
-    # # ax[0].plot(range(0, len(image_array[:,0])), image_array[:,0])
-
-    # # ax[1].plot(range(0, len(edge_strength[:,100])), edge_strength[:,100])
-    # plt.imshow(input_image)
-    # plt.show()
+    
     simple_bayes = get_bayes_rows(edge_strength)
 
-    # print(f'air_ice_simple: {simple_bayes[0]}')
-    # print(f'ice_rock_simple:{simple_bayes[1]}')
     imageio.imwrite('edges.png', uint8(255 * edge_strength / (amax(edge_strength))))
 
     # You'll need to add code here to figure out the results! For now,
