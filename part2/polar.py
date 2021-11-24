@@ -12,7 +12,6 @@ from scipy.ndimage import filters
 import sys
 import imageio
 from scipy.stats import norm
-
 import numpy as np
 
 # calculate "Edge strength map" of an image                                                                                                                                      
@@ -26,6 +25,7 @@ def get_distance_distr(row1, len):
     diff =  [] 
     for row in range(0,edge_strength.shape[0]):
         #diff.append(1/(2**(abs(row1 - row)+1)))
+        
         diff.append(1/(abs(row1-row)+1))
     diff = diff/sum(diff)
     return diff
@@ -65,7 +65,7 @@ def draw_asterisk(image, pt, color, thickness):
 def write_output_image(filename, image, simple, hmm, feedback, feedback_pt):
     new_image = draw_boundary(image, simple, (255, 255, 0), 2)
     new_image = draw_boundary(new_image, hmm, (0, 0, 255), 2)
-   # new_image = draw_boundary(new_image, feedback, (255, 0, 0), 2)
+    new_image = draw_boundary(new_image, feedback, (255, 0, 0), 2)
     new_image = draw_asterisk(new_image, feedback_pt, (255, 0, 0), 2)
     imageio.imwrite(filename, new_image)
 
@@ -82,9 +82,7 @@ def get_bayes_rows(edge_strength):
     median_air_ice_row = int(median(max_rows_list))
     for col in range(edge_strength.shape[1]):
         next_rows_list+=[(np.argmax(edge_strength[median_air_ice_row+10:,col]))]
-    print(f'next_rows_list:{next_rows_list}')
     next_rows_list = [row + median_air_ice_row+10 for row in next_rows_list]
-    print(f'next_rows_list1:{next_rows_list}')
 
     return (max_rows_list, next_rows_list)
 
@@ -111,14 +109,15 @@ def get_hmm_rows(edge_strength):
             
     ridge = V_table.argmin(axis=0)
 
-    # Calculation for ice-rock boundary
-    max_cost = max(emission_probs[:,0])
-    for r in ridge:
-        emission_probs[r,0] = max_cost
+    # # Calculation for ice-rock boundary
+    # max_cost = max(emission_probs[:,0])
+    # # for r in ridge:
+    # #     emission_probs[r,0] = max_cost
 
     V_table_ir = np.ones((nrows, ncols))*100000
-    V_table_ir[:,0] = emission_probs[:,0]
     median_air_ice_row = int(median(ridge))
+    for row in range(median_air_ice_row+10, edge_strength.shape[0]):
+        V_table_ir[row,0] = -np.log(edge_strength[row][0]/np.sum(edge_strength[:,0]))
 
     for t in range(1, edge_strength.shape[1]):
             for row in range(median_air_ice_row+10, edge_strength.shape[0]):
@@ -135,7 +134,7 @@ def get_feedback_rows_air_ice(edge_strength, row_coord, col_coord):
     emission_probs = -np.log(emission_probs)
 
     #create viterbi matrix
-    V_table = np.ones((edge_strength.shape[0], edge_strength.shape[1]))*10000
+    V_table = np.ones((edge_strength.shape[0], edge_strength.shape[1]))
     V_table[:,0] = emission_probs[:,0]
     V_table[:,col_coord] = emission_probs[:,col_coord]
     V_table[row_coord,col_coord] = -np.log(1)
@@ -154,7 +153,7 @@ def get_feedback_rows_air_ice(edge_strength, row_coord, col_coord):
             
     ridge = []
     ridge = np.argmin(V_table, axis = 0)
-
+    
 
     return ridge
 
@@ -185,7 +184,6 @@ def get_feedback_rows_ice_rock(edge_strength, row_coord, col_coord, air_ice):
             
     ridge = []
     ridge = np.argmin(V_table, axis = 0)
-
     return ridge
 
 # main program
@@ -205,7 +203,6 @@ if __name__ == "__main__":
 
     # compute edge strength mask -- in case it's helpful. Feel free to use this.
     edge_strength = edge_strength(input_image)
-    
     simple_bayes = get_bayes_rows(edge_strength)
     hmm_bayes = get_hmm_rows(edge_strength)
 
