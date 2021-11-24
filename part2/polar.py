@@ -25,12 +25,14 @@ def edge_strength(input_image):
 def get_distance_distr(row1, len):
     diff =  [] 
     for row in range(0,edge_strength.shape[0]):
-        #diff.append(1/(2**(abs(row1 - row)+1)))
         dist = abs(row1-row)
+        diff.append(1/(2**dist+1))
+
         #diff.append((len - dist)/len)
-        diff.append(1/(dist+1))
+        #diff.append(1/(dist+1))
     diff = diff/sum(diff)
     return diff
+
 
 # draw a "line" on an image (actually just plot the given y-coordinates
 #  for each x-coordinate)
@@ -172,6 +174,7 @@ def get_feedback_rows_ice_rock(edge_strength, row_coord, col_coord, air_ice):
     V_table[:,col_coord] = emission_probs[:,col_coord]
     V_table[row_coord,col_coord] = -np.log(1)
     median_airice = int(median(air_ice))
+
     for t in range(col_coord-1, 0,-1):
         for row in range(edge_strength.shape[0]-1, median_airice+10, -1):
             distance_distr = get_distance_distr(row, edge_strength.shape[0])
