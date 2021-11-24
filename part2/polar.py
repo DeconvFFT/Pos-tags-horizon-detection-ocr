@@ -27,8 +27,9 @@ def get_distance_distr(row1, len):
     for row in range(0,edge_strength.shape[0]):
         #diff.append(1/(2**(abs(row1 - row)+1)))
         dist = abs(row1-row)
+        #diff.append((len - dist)/len)
         diff.append(1/(dist+1))
-    #diff = diff/sum(diff)
+    diff = diff/sum(diff)
     return diff
 
 # draw a "line" on an image (actually just plot the given y-coordinates
@@ -105,7 +106,7 @@ def get_hmm_rows(edge_strength):
     for t in range(1, edge_strength.shape[1]):
         for row in range(edge_strength.shape[0]):
             distance_distr = get_distance_distr(row, edge_strength.shape[0])
-            transition = -log(distance_distr/sum(distance_distr))
+            transition = -log(distance_distr)
             V_table[row,t] = min(V_table[:,t-1]+transition+emission_probs[row, t])
             
     ridge = V_table.argmin(axis=0)
@@ -123,7 +124,7 @@ def get_hmm_rows(edge_strength):
     for t in range(1, edge_strength.shape[1]):
             for row in range(median_air_ice_row+10, edge_strength.shape[0]):
                 distance_distr = get_distance_distr(row, edge_strength.shape[0])
-                transition = -log(distance_distr/sum(distance_distr))
+                transition = -log(distance_distr)
                 V_table_ir[row, t] = min(V_table_ir[:,t-1]+transition+emission_probs[row, t])
     ridge1 = V_table_ir.argmin(axis=0)
     return (ridge,ridge1)
@@ -143,13 +144,13 @@ def get_feedback_rows_air_ice(edge_strength, row_coord, col_coord):
     for t in range(col_coord-1, 0,-1):
         for row in range(edge_strength.shape[0]-1,-1, -1):
             distance_distr = get_distance_distr(row, edge_strength.shape[0])
-            transition = -log(distance_distr/sum(distance_distr))
+            transition = -log(distance_distr)
             V_table[row,t] = min(V_table[:,t+1]+transition+emission_probs[row, t])
     
     for t in range(col_coord+1, edge_strength.shape[1]):
         for row in range(edge_strength.shape[0]):
             distance_distr = get_distance_distr(row, edge_strength.shape[0])
-            transition = -log(distance_distr/sum(distance_distr))
+            transition = -log(distance_distr)
             V_table[row,t] = min(V_table[:,t-1]+transition+emission_probs[row, t])
             
     ridge = []
@@ -174,13 +175,13 @@ def get_feedback_rows_ice_rock(edge_strength, row_coord, col_coord, air_ice):
     for t in range(col_coord-1, 0,-1):
         for row in range(edge_strength.shape[0]-1, median_airice+10, -1):
             distance_distr = get_distance_distr(row, edge_strength.shape[0])
-            transition = -log(distance_distr/sum(distance_distr))
+            transition = -log(distance_distr)
             V_table[row,t] = min(V_table[:,t+1]+transition+emission_probs[row, t])
     
     for t in range(col_coord+1, edge_strength.shape[1]):
         for row in range(median_airice+10, edge_strength.shape[0]):
             distance_distr = get_distance_distr(row, edge_strength.shape[0])
-            transition = -log(distance_distr/sum(distance_distr))
+            transition = -log(distance_distr)
             V_table[row,t] = min(V_table[:,t-1]+transition+emission_probs[row, t])
             
     ridge = []
