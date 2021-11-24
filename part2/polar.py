@@ -12,6 +12,7 @@ from scipy.ndimage import filters
 import sys
 import imageio
 from scipy.stats import norm
+import matplotlib.pyplot as plt
 import numpy as np
 
 # calculate "Edge strength map" of an image                                                                                                                                      
@@ -25,9 +26,9 @@ def get_distance_distr(row1, len):
     diff =  [] 
     for row in range(0,edge_strength.shape[0]):
         #diff.append(1/(2**(abs(row1 - row)+1)))
-        
-        diff.append(1/(abs(row1-row)+1))
-    diff = diff/sum(diff)
+        dist = abs(row1-row)
+        diff.append(1/(dist+1))
+    #diff = diff/sum(diff)
     return diff
 
 # draw a "line" on an image (actually just plot the given y-coordinates
@@ -169,15 +170,15 @@ def get_feedback_rows_ice_rock(edge_strength, row_coord, col_coord, air_ice):
     V_table[:,0] = emission_probs[:,0]
     V_table[:,col_coord] = emission_probs[:,col_coord]
     V_table[row_coord,col_coord] = -np.log(1)
-
+    median_airice = int(median(air_ice))
     for t in range(col_coord-1, 0,-1):
-        for row in range(edge_strength.shape[0]-1, air_ice[t]+9, -1):
+        for row in range(edge_strength.shape[0]-1, median_airice+10, -1):
             distance_distr = get_distance_distr(row, edge_strength.shape[0])
             transition = -log(distance_distr/sum(distance_distr))
             V_table[row,t] = min(V_table[:,t+1]+transition+emission_probs[row, t])
     
     for t in range(col_coord+1, edge_strength.shape[1]):
-        for row in range(air_ice[t]+10, edge_strength.shape[0]):
+        for row in range(median_airice+10, edge_strength.shape[0]):
             distance_distr = get_distance_distr(row, edge_strength.shape[0])
             transition = -log(distance_distr/sum(distance_distr))
             V_table[row,t] = min(V_table[:,t-1]+transition+emission_probs[row, t])
@@ -200,7 +201,8 @@ if __name__ == "__main__":
     # load in image 
     input_image = Image.open(input_filename).convert('RGB')
     image_array = array(input_image.convert('L'))
-
+    plt.imshow(input_image)
+    plt.show()
     # compute edge strength mask -- in case it's helpful. Feel free to use this.
     edge_strength = edge_strength(input_image)
     simple_bayes = get_bayes_rows(edge_strength)
