@@ -12,7 +12,6 @@ from scipy.ndimage import filters
 import sys
 import imageio
 from scipy.stats import norm
-import matplotlib.pyplot as plt
 import numpy as np
 
 # calculate "Edge strength map" of an image                                                                                                                                      
@@ -205,8 +204,6 @@ if __name__ == "__main__":
     # load in image 
     input_image = Image.open(input_filename).convert('RGB')
     image_array = array(input_image.convert('L'))
-    plt.imshow(input_image)
-    plt.show()
     # compute edge strength mask -- in case it's helpful. Feel free to use this.
     edge_strength = edge_strength(input_image)
     simple_bayes = get_bayes_rows(edge_strength)
