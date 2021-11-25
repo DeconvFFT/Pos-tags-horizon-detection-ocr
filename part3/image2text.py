@@ -37,7 +37,30 @@ CHARACTER_HEIGHT=25
 #                 emission_probabilities[letter][train] = round(1/999999,6)
 #             else:
 #                 emission_probabilities[letter][train] = prob
+#     return emission_probabilities 
+
+# def calculate_emission_probabilities(train_letters,test_letters):
+#     emission_probabilities = {}
+#     emission_count = {}
+#     for letter in range(len(test_letters)):
+#         emission_probabilities[letter] = {}
+#         emission_count[letter] = {}
+#         for train in train_letters:
+#             number_matching_pixels_pixels = len([(train_letters[train][x][y],test_letters[letter][x][y]) for x in range(CHARACTER_HEIGHT) \
+#                             for y in range(CHARACTER_WIDTH) if (train_letters[train][x][y]==test_letters[letter][x][y] and test_letters[letter][x][y]=='*')])
+#             number_of_empty_pixels = len([(train_letters[train][x][y],test_letters[letter][x][y]) for x in range(CHARACTER_HEIGHT) \
+#                             for y in range(CHARACTER_WIDTH) if (train_letters[train][x][y]==test_letters[letter][x][y] and test_letters[letter][x][y]==' ')])
+#             emission_cost = (number_matching_pixels_pixels) * 0.9 + (number_of_empty_pixels) * 0.1
+#             emission_count[letter][train] = emission_cost
+#     for letter in range(len(test_letters)):
+#         for train in train_letters:
+#             prob = round(emission_count[letter][train] / sum(emission_count[letter].values()),25)
+#             if prob==0:
+#                 emission_probabilities[letter][train] = round(1/999999999999999999999999,25)
+#             else:
+#                 emission_probabilities[letter][train] = prob
 #     return emission_probabilities
+
 
 def calculate_emission_probabilities(train_letters,test_letters):
     emission_probabilities = {}
@@ -54,12 +77,10 @@ def calculate_emission_probabilities(train_letters,test_letters):
             emission_count[letter][train] = emission_cost
     for letter in range(len(test_letters)):
         for train in train_letters:
-            prob = round(emission_count[letter][train] / sum(emission_count[letter].values()),25)
-            if prob==0:
-                emission_probabilities[letter][train] = round(1/999999999999999999999999,25)
-            else:
-                emission_probabilities[letter][train] = prob
+            # emission_probabilities[letter][train] = (emission_count[letter][train] + 1) / (sum(emission_count[letter].values())+ len(train_letters) * 2) #referenced from https://www.analyticsvidhya.com/blog/2021/04/improve-naive-bayes-text-classifier-using-laplace-smoothing/
+            emission_probabilities[letter][train] = (emission_count[letter][train] + 1) / (sum(emission_count[letter].values())+ 2)
     return emission_probabilities
+
 
 def calculate_initial_probabilities(data,total_letter_list):
     initial_count = {}
@@ -70,38 +91,130 @@ def calculate_initial_probabilities(data,total_letter_list):
         if word[0] in total_letter_list:
             initial_count[word[0]] += 1
     for dict_letter in initial_count:
-        prob = round(initial_count[dict_letter] / sum(initial_count.values()),25)
-        if prob==0:
-            initial_probabilities[dict_letter] = round(1/999999999999999999999999,25)
-        else:
-            initial_probabilities[dict_letter] = prob
+        # initial_probabilities[dict_letter] = (initial_count[dict_letter] + 1) / (sum(initial_count.values())+ len(total_letter_list) * 2)
+        initial_probabilities[dict_letter] = (initial_count[dict_letter] + 1) / (sum(initial_count.values()) + 2)
     return initial_probabilities
 
+# def calculate_initial_probabilities(data,total_letter_list):
+#     initial_count = {}
+#     initial_probabilities = {}
+#     for letter in total_letter_list:
+#         initial_count[letter] = 0
+#     for word in data:
+#         if word[0] in total_letter_list:
+#             initial_count[word[0]] += 1
+#     for dict_letter in initial_count:
+#         prob = round(initial_count[dict_letter] / sum(initial_count.values()),25)
+#         if prob==0:
+#             initial_probabilities[dict_letter] = round(1/999999999999999999999999,25)
+#         else:
+#             initial_probabilities[dict_letter] = prob
+#     return initial_probabilities
+
+
+# def calculate_transition_probabilities(data,total_letter_list):
+#     transition_count = {}
+#     transition_probabilities = {}
+#     for letter in total_letter_list:
+#         transition_count[letter] = {}
+#         transition_probabilities[letter] = {}
+#         for next_letter in total_letter_list:
+#             transition_count[letter][next_letter] = 0
+#             transition_probabilities[letter][next_letter] = round(1/999999999999999999999999,25)
+#     for word in data:
+#         for word_index in range(1,len(word)):
+#             if (word[word_index] in total_letter_list) and (word[word_index-1] in total_letter_list):
+#                 transition_count[word[word_index-1]][word[word_index]] += 1
+#     for letter in total_letter_list:
+#         for next_letter in total_letter_list:
+#             if sum(transition_count[letter].values()) != 0 and round(transition_count[letter][next_letter] / sum(transition_count[letter].values()),25) != 0:
+#                 transition_probabilities[letter][next_letter] = round(transition_count[letter][next_letter] / sum(transition_count[letter].values()),25)
+#             else:
+#                 pass
+#     return transition_probabilities
 
 def calculate_transition_probabilities(data,total_letter_list):
-    transition_count = {}
-    transition_probabilities = {}
-    for letter in total_letter_list:
-        transition_count[letter] = {}
-        transition_probabilities[letter] = {}
-        for next_letter in total_letter_list:
-            transition_count[letter][next_letter] = 0
-            transition_probabilities[letter][next_letter] = round(1/999999999999999999999999,25)
-    for word in data:
-        for word_index in range(1,len(word)):
-            if (word[word_index] in total_letter_list) and (word[word_index-1] in total_letter_list):
-                transition_count[word[word_index-1]][word[word_index]] += 1
-    for letter in total_letter_list:
-        for next_letter in total_letter_list:
-            if sum(transition_count[letter].values()) != 0 and round(transition_count[letter][next_letter] / sum(transition_count[letter].values()),6) != 0:
-                transition_probabilities[letter][next_letter] = round(transition_count[letter][next_letter] / sum(transition_count[letter].values()),6)
-            else:
-                pass
-    return transition_probabilities
+    added_string = ' '.join([word for word in data])
+    # print(added_string)
+    # print(len(added_string))
+    transition_count = np.zeros((len(total_letter_list),len(total_letter_list)))
+    
+    for letter in range(len(added_string)-1):
+        if added_string[letter] in total_letter_list and added_string[letter+1] in total_letter_list:
+            one = total_letter_list.index(added_string[letter])
+            two = total_letter_list.index(added_string[letter+1])
+            transition_count[one,two]+=1
+    rows_sum = np.sum(transition_count,axis=1)
+
+    for i in range(len(total_letter_list)):
+        for j in range(len(total_letter_list)):
+            transition_count[i,j] = (transition_count[i,j] + 1) / (rows_sum[i]+2)
+    return transition_count
+
+# def calculate_transition_probabilities(data,total_letter_list):
+#     transition_count = {}
+#     transition_probabilities = {}
+#     for letter in total_letter_list:
+#         transition_count[letter] = {}
+#         transition_probabilities[letter] = {}
+#         for next_letter in total_letter_list:
+#             transition_count[letter][next_letter] = 0
+#             transition_probabilities[letter][next_letter] = round(1/999999999999999999999999,25)
+#     for word in data:
+#         for word_index in range(1,len(word)):
+#             if (word[word_index] in total_letter_list) and (word[word_index-1] in total_letter_list):
+#                 transition_count[word[word_index]][word[word_index-1]] += 1
+#     for letter in total_letter_list:
+#         for next_letter in total_letter_list:
+#             if sum(transition_count[letter].values()) != 0 and round(transition_count[letter][next_letter] / sum(transition_count[letter].values()),25) != 0:
+#                 transition_probabilities[letter][next_letter] = round(transition_count[letter][next_letter] / sum(transition_count[letter].values()),25)
+#             else:
+#                 pass
+#     return transition_probabilities
+
+
+# def calculate_transition_probabilities(data,total_letter_list):
+#     transition_count = {}
+#     transition_probabilities = {}
+#     for letter in total_letter_list:
+#         transition_count[letter] = {}
+#         transition_probabilities[letter] = {}
+#         for next_letter in total_letter_list:
+#             transition_count[letter][next_letter] = 0
+#     for word in data:
+#         for word_index in range(1,len(word)):
+#             if (word[word_index] in total_letter_list) and (word[word_index-1] in total_letter_list):
+#                 transition_count[word[word_index]][word[word_index-1]] += 1
+#     for letter in total_letter_list:
+#         for next_letter in total_letter_list:
+#             # transition_probabilities[letter][next_letter] = (transition_count[letter][next_letter]+1) / (sum(transition_count[letter].values()) + len(total_letter_list) * 2)
+#             transition_probabilities[letter][next_letter] = (transition_count[letter][next_letter]+1) / (sum(transition_count[letter].values()) + 100)
+#     return transition_probabilities
+
+# def calculate_transition_probabilities(data,total_letter_list):
+#     transition_count = {}
+#     transition_probabilities = {}
+#     for letter in total_letter_list:
+#         transition_count[letter] = {}
+#         transition_probabilities[letter] = {}
+#         for next_letter in total_letter_list:
+#             transition_count[letter][next_letter] = 0
+#     for word in data:
+#         for word_index in range(1,len(word)):
+#             if (word[word_index] in total_letter_list) and (word[word_index-1] in total_letter_list):
+#                 transition_count[word[word_index]][word[word_index-1]] += 1
+#     for letter in total_letter_list:
+#         for next_letter in total_letter_list:
+#             # transition_probabilities[letter][next_letter] = (transition_count[letter][next_letter]+1) / (sum(transition_count[letter].values()) + len(total_letter_list) * 2)
+#             # transition_probabilities[letter][next_letter] = (transition_count[letter][next_letter]+1) / (sum(transition_count[letter].values()) + 100)
+#             alpha = 1
+#             transition_probabilities[letter][next_letter] = (transition_count[letter][next_letter]+alpha) / (sum(transition_count[letter].values()) + 2 * alpha)
+#             # transition_probabilities[letter][next_letter] = (transition_count[letter][next_letter]+alpha) / (len(transition_count[letter]) + 2 * alpha)
+#     return transition_probabilities
+
+# def word_emission_probability(letter,test_word,train_list):
 
     
-
-
 def load_letters(fname):
     im = Image.open(fname)
     px = im.load()
@@ -135,47 +248,111 @@ def calculate_using_bayes(test_letters,train_letters):
         bayes_string += max_key
     return bayes_string
     
+# def calculated_using_viterbi(data,train_word_list,test_letters,train_letters):
+#     emission_probabilities = calculate_emission_probabilities(train_letters,test_letters)
+#     test_string = ''
+#     for letter in emission_probabilities:
+#         max_key = max(emission_probabilities[letter], key=emission_probabilities[letter].get)
+#         test_string += max_key
+    
+#     initial_probabilities = calculate_initial_probabilities(data,train_word_list)
+#     transition_probabilities = calculate_transition_probabilities(data, train_word_list)
+#     # print(transition_probabilities)
+#     temp_word_list = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+#     words_separated = test_string.split(' ')
+#     print(words_separated)
+#     counter = 0
+#     for word in words_separated:
+#         storing_probabilities = np.ones((len(train_word_list),len(word)))
+#         storing_letter = np.ones((len(train_word_list),len(word)))
+#         # print(storing_probabilities.shape)
+#         for letter in range(len(word)):
+#             for train in range(len(train_word_list)):
+#                 if letter==0:
+#                     storing_probabilities[train][letter] =  np.log(emission_probabilities[counter][train_word_list[train]]) 
+#                                     #   + np.log(initial_probabilities[train_word_list[train]])
+#                     storing_letter[train][letter] = train
+#                     # print("Initial:",counter,letter,train)
+#                     # print("First letter",word[letter],train_word_list[train],storing_probabilities[train][letter])
+#                 # elif word[letter] in temp_word_list:
+#                 #     # storing_probabilities[train][letter] = np.max([storing_probabilities[t][letter-1]*transition_probabilities[train_word_list[t]][train_word_list[train]]
+#                 #             # *emission_probabilities[counter][train_word_list[train]] for t in range(len(train_word_list))])
+#                 #     storing_probabilities[train][letter] = np.max([storing_probabilities[t][letter-1]
+#                 #             +np.log(transition_probabilities[train_word_list[train]][train_word_list[t]])*0.005
+#                 #             +np.log(emission_probabilities[counter][train_word_list[train]]) for t in range(len(train_word_list))])
+#                 #     # print(counter,letter,train)
+#                 #     # storing_letter[train][letter] = int(np.argmax([storing_probabilities[t][letter-1]*transition_probabilities[train_word_list[t]][train_word_list[train]] 
+#                 #             # *emission_probabilities[counter][train_word_list[train]] for t in range(len(train_word_list))]))
+#                 #     storing_letter[train][letter] = np.argmax([storing_probabilities[t][letter-1]
+#                 #             +np.log(transition_probabilities[train_word_list[train]][train_word_list[t]])*0.005
+#                 #             +np.log(emission_probabilities[counter][train_word_list[train]]) for t in range(len(train_word_list))])
+#                 #     # print(word[letter],train_word_list[train],storing_probabilities[train][letter])
+#                 else:
+#                     storing_probabilities[train][letter] = np.max([storing_probabilities[t][letter-1]
+#                             +np.log(transition_probabilities[t,train])
+#                             +np.log(emission_probabilities[counter][train_word_list[train]]) for t in range(len(train_word_list))])
+#                     storing_letter[train][letter] = np.argmax([storing_probabilities[t][letter-1]
+#                             +np.log(transition_probabilities[t,train])
+#                             +np.log(emission_probabilities[counter][train_word_list[train]]) for t in range(len(train_word_list))])
+
+#             counter+=1
+#             # print(counter,storing_probabilities)
+#         counter+=1
+#         # print(storing_probabilities)
+#         best_pointer =np.argmax([storing_probabilities[t][len(word)-1] for t in range(len(train_word_list))])
+#         backtrack = []
+#         temp_best_pointer = best_pointer
+#         # backtrack.append(train_word_list[temp_best_pointer])
+#         print(len(word))
+#         for back_pos in range(len(word),0,-1):
+#             temp = train_word_list[temp_best_pointer]
+#             backtrack.append(temp)
+#             temp_best_pointer = int(storing_letter[temp_best_pointer][back_pos-1])    
+#         print(backtrack[::-1])
+#         # print(best_word_string)
+        
+#     return 'now'
+
 def calculated_using_viterbi(data,train_word_list,test_letters,train_letters):
     emission_probabilities = calculate_emission_probabilities(train_letters,test_letters)
-    test_string = ''
-    for letter in emission_probabilities:
-        max_key = max(emission_probabilities[letter], key=emission_probabilities[letter].get)
-        test_string += max_key
-    
     initial_probabilities = calculate_initial_probabilities(data,train_word_list)
     transition_probabilities = calculate_transition_probabilities(data, train_word_list)
     
-    words_separated = test_string.split(' ')
-    counter = 0
-    for word in words_separated:
-        storing_probabilities = np.ones((len(train_word_list),len(word)))
-        storing_letter = np.ones((len(train_word_list),len(word)))
-        print(storing_probabilities.shape)
-        for letter in range(len(word)):
-            for train in range(len(train_word_list)):
-                if letter==0:
-                    storing_probabilities[train][letter] =initial_probabilities[word[letter]] * emission_probabilities[counter][train_word_list[train]]
-                    storing_letter[train][letter] = 0
-                else:
-                    storing_probabilities[train][letter] = np.max([storing_probabilities[t][letter-1]*transition_probabilities[train_word_list[t]][train_word_list[train]]
-                            *emission_probabilities[counter][train_word_list[train]] for t in range(len(train_word_list))])
-                    storing_letter[train][letter] = int(np.argmax([storing_probabilities[t][letter-1]*transition_probabilities[train_word_list[t]][train_word_list[train]] 
-                            *emission_probabilities[counter][train_word_list[train]] for t in range(len(train_word_list))]))
-                    # print(word[letter],train_word_list[train],train_word_list[int(storing_letter[train][letter])])
+    temp_word_list = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+    
+    
+    storing_probabilities = np.ones((len(train_word_list),len(test_letters)))
+    storing_letter = np.ones((len(train_word_list),len(test_letters)))
+    for letter in range(len(test_letters)):    
+        for train in range(len(train_word_list)):
+            if letter==0:
+                storing_probabilities[train][letter] =  np.log(emission_probabilities[letter][train_word_list[train]]) + (np.log(initial_probabilities[train_word_list[train]]) * 0.01)
+                storing_letter[train][letter] = train
+            # elif train_word_list[train] in temp_word_list:
+            #     storing_probabilities[train][letter] = np.max([storing_probabilities[t][letter-1]
+            #             +np.log(transition_probabilities[t,train])*0.01
+            #             +np.log(emission_probabilities[letter][train_word_list[train]]) for t in range(len(train_word_list))])
+            #     storing_letter[train][letter] = np.argmax([storing_probabilities[t][letter-1]
+            #             +np.log(transition_probabilities[t,train])*0.01
+            #             +np.log(emission_probabilities[letter][train_word_list[train]]) for t in range(len(train_word_list))])
+            else:
+                storing_probabilities[train][letter] = np.max([storing_probabilities[t][letter-1]
+                        +np.log(transition_probabilities[t,train])*0.01
+                        +np.log(emission_probabilities[letter][train_word_list[train]]) for t in range(len(train_word_list))])
+                storing_letter[train][letter] = np.argmax([storing_probabilities[t][letter-1]
+                        +np.log(transition_probabilities[t,train])*0.01
+                        +np.log(emission_probabilities[letter][train_word_list[train]]) for t in range(len(train_word_list))])
 
-            counter+=1
+    best_pointer =np.argmax([storing_probabilities[t][len(test_letters)-1] for t in range(len(train_word_list))])
+    backtrack = []
+    temp_best_pointer = best_pointer
+    for back_pos in range(len(test_letters),0,-1):
+        temp = train_word_list[temp_best_pointer]
+        backtrack.append(temp)
+        temp_best_pointer = int(storing_letter[temp_best_pointer][back_pos-1])   
+    
         
-        temp_best_pointer =np.argmax([storing_probabilities[t][len(word)-1] for t in range(len(train_word_list))])
-        backtrack = []
-        for back_pos in range(len(word)-1,-1,-1):
-            backtrack.append(train_word_list[int(temp_best_pointer)]) 
-            # print(back_pos)
-            temp_best_pointer = int(storing_letter[temp_best_pointer][back_pos-1])
-            # print('it worked')
-        print(backtrack)
-        # print(best_word_string)
-        counter+=1
-    return 'now'
+    return ''.join(backtrack[::-1])
 
 
 #####
@@ -191,46 +368,12 @@ data = read_data(train_txt_fname)
 
 bayes = calculate_using_bayes(test_letters,train_letters)
 
-emission_probabilities = calculate_emission_probabilities(train_letters,test_letters)
-
-initial_probabilities = calculate_initial_probabilities(data,TRAIN_LETTERS)
-
-transition_probabilities = calculate_transition_probabilities(data, TRAIN_LETTERS)
-
-print("Initial:",initial_probabilities['G'])
-print("Emission:",emission_probabilities[0]['A'])
-
 
 viterbi = calculated_using_viterbi(data,TRAIN_LETTERS,test_letters,train_letters)
-# for i in train_letters:
-    # print("\n".join([ r for r in train_letters[i]]))
-
-# for letter in range(len(test_letters)):
-#     print(letter,len([x for x in range(CHARACTER_HEIGHT) for y in range(CHARACTER_WIDTH) if test_letters[letter][x][y]=='*']))
-
-
-
-
-
-# len("Train letter Length:",train_letters)
-# len("Test letter Length:",test_letters)
-## Below is just some sample code to show you how the functions above work. 
-# You can delete this and put your own code here!
-
-
-# Each training letter is now stored as a list of characters, where black
-#  dots are represented by *'s and white dots are spaces. For example,
-#  here's what "a" looks like:
-# print("\n".join([ r for r in train_letters['a'] ]))
-
-# Same with test letters. Here's what the third letter of the test data
-#  looks like:
-# print("\n".join([ r for r in test_letters[2] ]))
-
 
 
 # The final two lines of your output should look something like this:
 print("Simple: " + bayes)
-print("   HMM: " + "Sample simple result") 
+print("   HMM: " + viterbi) 
 
 
