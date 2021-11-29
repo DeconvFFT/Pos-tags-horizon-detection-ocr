@@ -21,14 +21,22 @@ def edge_strength(input_image):
     filters.sobel(grayscale,0,filtered_y)
     return sqrt(filtered_y**2)
 
+
+# generate transition probabilities for a row to all rows in next column
+# This function takes row of column 1 and number of rows as input and returns the inverse 
+# exponential distance probability
+# @param: row: Row of current column
+# @param: len: Total number of rows in one column
 def get_distance_distr(row1, len):
     diff =  [] 
     for row in range(0,edge_strength.shape[0]):
         dist = abs(row1-row)
         diff.append(1/(2**dist+1))
-
-        #diff.append((len - dist)/len)
-        #diff.append(1/(dist+1))
+        """
+        Some other distance distributions tried:
+        1.) diff.append((len - dist)/len)
+        2.) diff.append(1/(dist+1))
+        """
     diff = diff/sum(diff)
     return diff
 
@@ -42,7 +50,7 @@ def get_distance_distr(row1, len):
 # - thickness is thickness of line in pixels
 #
 
-## Assumptions...
+## Assumptions for constructing a boundary...
 # air-ice boundary >= ice-rock boundary -10 px
 # two boundaries span the entire width of image
 # each boundary is relatively smooth: boundary's row in one
@@ -68,11 +76,16 @@ def draw_asterisk(image, pt, color, thickness):
 def write_output_image(filename, image, simple, hmm, feedback, feedback_pt):
     new_image = draw_boundary(image, simple, (255, 255, 0), 2)
     new_image = draw_boundary(new_image, hmm, (0, 0, 255), 2)
-    #new_image = draw_boundary(new_image, feedback, (255, 0, 0), 2)
+    new_image = draw_boundary(new_image, feedback, (255, 0, 0), 2)
     new_image = draw_asterisk(new_image, feedback_pt, (255, 0, 0), 2)
     imageio.imwrite(filename, new_image)
 
-
+# generate air-ice and ice-rock boundary using simple bayes
+# This function takes edge strength map as input and  
+# returns list of rows containining boundary points for air-ice and ice-rock
+# @param: edge_strength: Gives us a derviative of image. Higher the value
+# in edge strength, more likely a point is to be a part of a boundary.
+# We calculate the 
 def get_bayes_rows(edge_strength):
     max_rows_list = []
     next_rows_list = []
@@ -86,13 +99,11 @@ def get_bayes_rows(edge_strength):
     for col in range(edge_strength.shape[1]):
         next_rows_list+=[(np.argmax(edge_strength[median_air_ice_row+10:,col]))]
     next_rows_list = [row + median_air_ice_row+10 for row in next_rows_list]
-    print(len(max_rows_list))
     return (max_rows_list, next_rows_list)
 
 # 
 def get_hmm_rows(edge_strength):
     edge_strength = edge_strength+1
-    # # emission probability calculation
     ncols = edge_strength.shape[1]
     nrows = edge_strength.shape[0]
 
@@ -133,7 +144,7 @@ def get_feedback_rows_air_ice(edge_strength, row_coord, col_coord):
     emission_probs = edge_strength/sum(edge_strength, axis = 0)
     emission_probs = -np.log(emission_probs)
 
-    #create viterbi matrix
+    #create viterbi table
     V_table = np.ones((edge_strength.shape[0], edge_strength.shape[1]))
     V_table[:,0] = emission_probs[:,0]
     V_table[:,col_coord] = emission_probs[:,col_coord]
@@ -159,9 +170,8 @@ def get_feedback_rows_air_ice(edge_strength, row_coord, col_coord):
 
 def get_feedback_rows_ice_rock(edge_strength, row_coord, col_coord, air_ice):
     edge_strength = edge_strength+1
-    # compute emission probabilities
-    emission_probs = edge_strength/sum(edge_strength, axis = 0)
 
+    emission_probs = edge_strength/sum(edge_strength, axis = 0)
     emission_probs = -np.log(emission_probs)
 
     #create viterbi table
@@ -211,7 +221,6 @@ if __name__ == "__main__":
     # just create some random lines.
 
     airice_simple = simple_bayes[0]
-
     airice_hmm = hmm_bayes[0]
     airice_feedback= get_feedback_rows_air_ice(edge_strength,gt_airice[1], gt_airice[0] )
 
