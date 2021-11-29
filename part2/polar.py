@@ -68,7 +68,7 @@ def draw_asterisk(image, pt, color, thickness):
 def write_output_image(filename, image, simple, hmm, feedback, feedback_pt):
     new_image = draw_boundary(image, simple, (255, 255, 0), 2)
     new_image = draw_boundary(new_image, hmm, (0, 0, 255), 2)
-    new_image = draw_boundary(new_image, feedback, (255, 0, 0), 2)
+    #new_image = draw_boundary(new_image, feedback, (255, 0, 0), 2)
     new_image = draw_asterisk(new_image, feedback_pt, (255, 0, 0), 2)
     imageio.imwrite(filename, new_image)
 
@@ -86,7 +86,7 @@ def get_bayes_rows(edge_strength):
     for col in range(edge_strength.shape[1]):
         next_rows_list+=[(np.argmax(edge_strength[median_air_ice_row+10:,col]))]
     next_rows_list = [row + median_air_ice_row+10 for row in next_rows_list]
-
+    print(len(max_rows_list))
     return (max_rows_list, next_rows_list)
 
 # 
@@ -113,9 +113,6 @@ def get_hmm_rows(edge_strength):
     ridge = V_table.argmin(axis=0)
 
     # # Calculation for ice-rock boundary
-    # max_cost = max(emission_probs[:,0])
-    # # for r in ridge:
-    # #     emission_probs[r,0] = max_cost
 
     V_table_ir = np.ones((nrows, ncols))*100000
     median_air_ice_row = int(median(ridge))
@@ -208,7 +205,6 @@ if __name__ == "__main__":
     edge_strength = edge_strength(input_image)
     simple_bayes = get_bayes_rows(edge_strength)
     hmm_bayes = get_hmm_rows(edge_strength)
-
     imageio.imwrite('edges.png', uint8(255 * edge_strength / (amax(edge_strength))))
 
     # You'll need to add code here to figure out the results! For now,
