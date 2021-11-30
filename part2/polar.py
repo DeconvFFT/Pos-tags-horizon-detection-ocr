@@ -29,15 +29,36 @@ def edge_strength(input_image):
 # @param: len: Total number of rows in one column
 def get_distance_distr(row1, len):
     diff =  [] 
+    dists = []
     for row in range(0,edge_strength.shape[0]):
-        dist = abs(row1-row)
-        diff.append(1/(2**dist+1))
+        dist = abs(row1-row)+1
+       
+        #diff.append(1/(2**dist+1))
+        if dist <=6:
+            diff.append(1/((dist+1)))
+        else:
+            diff.append(1/(exp(dist)))
+        # if dist <=3:
+        #     diff.append(dist+1)
+        # else:
+        #     diff.append(2**dist)
+        #diff.append(dist*log(dist))
+        dists.append(dist)
+
         """
         Some other distance distributions tried:
         1.) diff.append((len - dist)/len)
         2.) diff.append(1/(dist+1))
         """
     diff = diff/sum(diff)
+    #print(f'diff: {diff}')
+    #logdist = []
+    #print(len(dists))
+    # for i in range(edge_strength.shape[0]):
+    #     #if dists[i] <=2:
+    #         logdist.append(-diff[i]*np.log(diff[i]))
+    #     # else:
+    #     #     logdist.append(10000)
     return diff
 
 
@@ -76,8 +97,8 @@ def draw_asterisk(image, pt, color, thickness):
 def write_output_image(filename, image, simple, hmm, feedback, feedback_pt):
     new_image = draw_boundary(image, simple, (255, 255, 0), 2)
     new_image = draw_boundary(new_image, hmm, (0, 0, 255), 2)
-    new_image = draw_boundary(new_image, feedback, (255, 0, 0), 2)
-    new_image = draw_asterisk(new_image, feedback_pt, (255, 0, 0), 2)
+    #new_image = draw_boundary(new_image, feedback, (255, 0, 0), 2)
+    #new_image = draw_asterisk(new_image, feedback_pt, (255, 0, 0), 2)
     imageio.imwrite(filename, new_image)
 
 # generate air-ice and ice-rock boundary using simple bayes
@@ -133,7 +154,10 @@ def get_hmm_rows(edge_strength):
     for t in range(1, edge_strength.shape[1]):
             for row in range(median_air_ice_row+10, edge_strength.shape[0]):
                 distance_distr = get_distance_distr(row, edge_strength.shape[0])
+                #transition = distance_distr
                 transition = -log(distance_distr)
+                #print(f'row: {row}, dist: {distance_distr}, transition: {transition}')
+
                 V_table_ir[row, t] = min(V_table_ir[:,t-1]+transition+emission_probs[row, t])
     ridge1 = V_table_ir.argmin(axis=0)
     return (ridge,ridge1)
