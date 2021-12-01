@@ -13,6 +13,7 @@ import sys
 import imageio
 from scipy.stats import norm
 import numpy as np
+import matplotlib.pyplot as plt
 
 # calculate "Edge strength map" of an image                                                                                                                                      
 def edge_strength(input_image):
@@ -21,47 +22,36 @@ def edge_strength(input_image):
     filters.sobel(grayscale,0,filtered_y)
     return sqrt(filtered_y**2)
 
+def get_emission(image, edge_strength):
+    nrows = edge_strength.shape[0]
+    ncols = edge_strength.shape[1]
+    emission = np.zeros((nrows, ncols))
+    for r in range(nrows):
+        for c in range(ncols):
+            emission[r][c] = edge_strength[r][c]/image[r][c]
+    emission_probs = emission/np.sum(emission, axis = 0)
+    return emission_probs
+
+
 
 # generate transition probabilities for a row to all rows in next column
 # This function takes row of column 1 and number of rows as input and returns the inverse 
 # exponential distance probability
-# @param: row: Row of current column
-# @param: len: Total number of rows in one column
-def get_distance_distr(row1, len):
-    diff =  [] 
-    dists = []
-    for row in range(0,edge_strength.shape[0]):
-        dist = abs(row1-row)+1
-       
-        #diff.append(1/(2**dist+1))
-        if dist <=6:
-            diff.append(1/((dist+1)))
-        else:
-            diff.append(1/(exp(dist)))
-        # if dist <=3:
-        #     diff.append(dist+1)
-        # else:
-        #     diff.append(2**dist)
-        #diff.append(dist*log(dist))
-        dists.append(dist)
-
-        """
+# @param: row1: Row of current column
+# @param: row2: Row of next column
+"""
         Some other distance distributions tried:
         1.) diff.append((len - dist)/len)
         2.) diff.append(1/(dist+1))
-        """
-    diff = diff/sum(diff)
-    #print(f'diff: {diff}')
-    #logdist = []
-    #print(len(dists))
-    # for i in range(edge_strength.shape[0]):
-    #     #if dists[i] <=2:
-    #         logdist.append(-diff[i]*np.log(diff[i]))
-    #     # else:
-    #     #     logdist.append(10000)
-    return diff
-
-
+"""
+def get_distance_distr1(row1, row2):
+     
+    dist = abs(row1-row2)
+    if dist <=6:
+        return -np.log(1/((dist+1)))
+    else:
+        return -np.log((2/(2**(dist+1)))**2) 
+        
 # draw a "line" on an image (actually just plot the given y-coordinates
 #  for each x-coordinate)
 # - image is the image to draw on
@@ -97,8 +87,8 @@ def draw_asterisk(image, pt, color, thickness):
 def write_output_image(filename, image, simple, hmm, feedback, feedback_pt):
     new_image = draw_boundary(image, simple, (255, 255, 0), 2)
     new_image = draw_boundary(new_image, hmm, (0, 0, 255), 2)
-    #new_image = draw_boundary(new_image, feedback, (255, 0, 0), 2)
-    #new_image = draw_asterisk(new_image, feedback_pt, (255, 0, 0), 2)
+    new_image = draw_boundary(new_image, feedback, (255, 0, 0), 2)
+    new_image = draw_asterisk(new_image, feedback_pt, (255, 0, 0), 2)
     imageio.imwrite(filename, new_image)
 
 # generate air-ice and ice-rock boundary using simple bayes
@@ -123,102 +113,166 @@ def get_bayes_rows(edge_strength):
     return (max_rows_list, next_rows_list)
 
 # 
-def get_hmm_rows(edge_strength):
+def get_hmm_rows(image,edge_strength):
     edge_strength = edge_strength+1
     ncols = edge_strength.shape[1]
     nrows = edge_strength.shape[0]
 
-    emission_probs = -np.log(edge_strength/np.sum(edge_strength, axis = 0))
     V_table = np.ones((nrows, ncols))
-    V_table[:,0] = emission_probs[:,0]
+    emission_probs = -np.log(get_emission(image, edge_strength))
+    V_table[:,0] = -np.log(edge_strength[:,0]/np.sum(edge_strength[:,0]))+ emission_probs[:,0]
 
     # # calculation for viterbi table 
     # as minimum cost function
 
+    min_state = np.zeros((nrows, ncols))
+
     # Calculation for air ice boundary
     for t in range(1, edge_strength.shape[1]):
         for row in range(edge_strength.shape[0]):
-            distance_distr = get_distance_distr(row, edge_strength.shape[0])
-            transition = -log(distance_distr)
-            V_table[row,t] = min(V_table[:,t-1]+transition+emission_probs[row, t])
-            
-    ridge = V_table.argmin(axis=0)
+            min_cost = np.Infinity
+            for r1 in range(edge_strength.shape[0]):
+
+                distance_distr = get_distance_distr1(row, r1)
+                transition = distance_distr
+                val = V_table[r1][t-1]+transition 
+                if(val < min_cost):
+                    min_cost = val
+                    min_state[row][t] = r1
+                    V_table[row][t] = min_cost + emission_probs[row][t]
+
+    mini = np.argmin(V_table[:,-1])
+    ridge_air_ice = np.zeros(ncols)
+    for col in range(ncols-1, -1, -1):
+        ridge_air_ice[col] = int(mini)
+        mini = min_state[int(mini)][col]
 
     # # Calculation for ice-rock boundary
 
-    V_table_ir = np.ones((nrows, ncols))*100000
-    median_air_ice_row = int(median(ridge))
+    V_table_ir = np.ones((nrows, ncols))*np.Infinity
+    min_state = np.zeros((nrows, ncols))
+    median_air_ice_row = int(median(ridge_air_ice))
     for row in range(median_air_ice_row+10, edge_strength.shape[0]):
-        V_table_ir[row,0] = -np.log(edge_strength[row][0]/np.sum(edge_strength[:,0]))
+        V_table_ir[row,0] = -np.log(edge_strength[row][0]/np.sum(edge_strength[:,0])) + emission_probs[row,0]
 
+    for col in range(ncols):
+        V_table_ir[int(ridge_air_ice[col]),col] = np.Infinity
+    
     for t in range(1, edge_strength.shape[1]):
-            for row in range(median_air_ice_row+10, edge_strength.shape[0]):
-                distance_distr = get_distance_distr(row, edge_strength.shape[0])
-                #transition = distance_distr
-                transition = -log(distance_distr)
-                #print(f'row: {row}, dist: {distance_distr}, transition: {transition}')
+            for row in range(int(ridge_air_ice[t])+10, edge_strength.shape[0]):
+                min_cost = np.Infinity
+                for r1 in range(edge_strength.shape[0]):
 
-                V_table_ir[row, t] = min(V_table_ir[:,t-1]+transition+emission_probs[row, t])
-    ridge1 = V_table_ir.argmin(axis=0)
-    return (ridge,ridge1)
+                    distance_distr = get_distance_distr1(row, r1)
+                    #transition = distance_distr
+                    transition = distance_distr
+                    val = V_table_ir[r1][t-1]+transition 
+                    if(val < min_cost):
+                        min_cost = val
+                        min_state[row][t] = r1
+                        V_table_ir[row][t] = min_cost + emission_probs[row][t]
+                    
+    mini = np.argmin(V_table_ir[:,-1])
+    ridge_ice_rock = np.zeros(ncols)
+    for col in range(ncols-1, -1, -1):
+        ridge_ice_rock[col] = int(mini)
+        mini = min_state[int(mini)][col]
+    return (ridge_air_ice,ridge_ice_rock)
+
 
 def get_feedback_rows_air_ice(edge_strength, row_coord, col_coord):
     edge_strength = edge_strength+1
-
+    nrows = edge_strength.shape[0]
+    ncols = edge_strength.shape[1]
     emission_probs = edge_strength/sum(edge_strength, axis = 0)
     emission_probs = -np.log(emission_probs)
 
     #create viterbi table
     V_table = np.ones((edge_strength.shape[0], edge_strength.shape[1]))
-    V_table[:,0] = emission_probs[:,0]
-    V_table[:,col_coord] = emission_probs[:,col_coord]
+    V_table[:,col_coord] = np.Infinity
     V_table[row_coord,col_coord] = -np.log(1)
+    min_state = np.zeros((nrows, ncols))
 
     for t in range(col_coord-1, 0,-1):
-        for row in range(edge_strength.shape[0]-1,-1, -1):
-            distance_distr = get_distance_distr(row, edge_strength.shape[0])
-            transition = -log(distance_distr)
-            V_table[row,t] = min(V_table[:,t+1]+transition+emission_probs[row, t])
+        for row in range(0, nrows):
+            min_cost = np.Infinity
+            for r1 in range(edge_strength.shape[0]):
+
+                distance_distr = get_distance_distr1(row, r1)
+                transition = distance_distr
+                val = V_table[r1][t+1]+transition 
+                if(val < min_cost):
+                    min_cost = val
+                    min_state[row][t] = r1
+                    V_table[row][t] = min_cost + emission_probs[row][t]
     
     for t in range(col_coord+1, edge_strength.shape[1]):
         for row in range(edge_strength.shape[0]):
-            distance_distr = get_distance_distr(row, edge_strength.shape[0])
-            transition = -log(distance_distr)
-            V_table[row,t] = min(V_table[:,t-1]+transition+emission_probs[row, t])
+            min_cost = np.Infinity
+            for r1 in range(edge_strength.shape[0]):
+
+                distance_distr = get_distance_distr1(row, r1)
+                transition = distance_distr
+                val = V_table[r1][t-1]+transition 
+                if(val < min_cost):
+                    min_cost = val
+                    min_state[row][t] = r1
+                    V_table[row][t] = min_cost + emission_probs[row][t]
             
-    ridge = []
-    ridge = np.argmin(V_table, axis = 0)
-    
+    mini = np.argmin(V_table[:,-1])
+    ridge = np.zeros(ncols)
+    for col in range(ncols-1, -1, -1):
+        ridge[col] = int(mini)
+        mini = min_state[int(mini)][col]    
 
     return ridge
 
 def get_feedback_rows_ice_rock(edge_strength, row_coord, col_coord, air_ice):
     edge_strength = edge_strength+1
-
+    nrows = edge_strength.shape[0]
+    ncols = edge_strength.shape[1]
     emission_probs = edge_strength/sum(edge_strength, axis = 0)
     emission_probs = -np.log(emission_probs)
 
     #create viterbi table
-    V_table = np.ones((edge_strength.shape[0], edge_strength.shape[1]))*10000
-    V_table[:,0] = emission_probs[:,0]
-    V_table[:,col_coord] = emission_probs[:,col_coord]
+    V_table = np.ones((edge_strength.shape[0], edge_strength.shape[1]))*np.Infinity
+    V_table[:,col_coord] = np.Infinity
     V_table[row_coord,col_coord] = -np.log(1)
-    median_airice = int(median(air_ice))
-
+    min_state = np.zeros((nrows, ncols))
+            
     for t in range(col_coord-1, 0,-1):
-        for row in range(edge_strength.shape[0]-1, median_airice+10, -1):
-            distance_distr = get_distance_distr(row, edge_strength.shape[0])
-            transition = -log(distance_distr)
-            V_table[row,t] = min(V_table[:,t+1]+transition+emission_probs[row, t])
+        for row in range(nrows):
+            min_cost = np.Infinity
+            for r1 in range(int(air_ice[t])+10, nrows):
+
+                distance_distr = get_distance_distr1(row, r1)
+                #transition = distance_distr
+                transition = distance_distr
+                val = V_table[r1][t+1]+transition 
+                if(val < min_cost):
+                    min_cost = val
+                    min_state[row][t] = r1
+                    V_table[row][t] = min_cost + emission_probs[row][t]
     
     for t in range(col_coord+1, edge_strength.shape[1]):
-        for row in range(median_airice+10, edge_strength.shape[0]):
-            distance_distr = get_distance_distr(row, edge_strength.shape[0])
-            transition = -log(distance_distr)
-            V_table[row,t] = min(V_table[:,t-1]+transition+emission_probs[row, t])
-            
-    ridge = []
-    ridge = np.argmin(V_table, axis = 0)
+        for row in range(int(air_ice[t])+10, edge_strength.shape[0]):
+            min_cost = np.Infinity
+            for r1 in range(edge_strength.shape[0]):
+
+                distance_distr = get_distance_distr1(row, r1)
+                transition = distance_distr
+                val = V_table[r1][t-1]+transition 
+                if(val < min_cost):
+                    min_cost = val
+                    min_state[row][t] = r1
+                    V_table[row][t] = min_cost + emission_probs[row][t]
+
+
+    mini = np.argmin(V_table[:,-1])
+    ridge = np.zeros(ncols)
+    for col in range(ncols-1, -1, -1):
+        ridge[col] = int(mini)
+        mini = min_state[int(mini)][col]
     return ridge
 
 # main program
@@ -238,7 +292,7 @@ if __name__ == "__main__":
     # compute edge strength mask -- in case it's helpful. Feel free to use this.
     edge_strength = edge_strength(input_image)
     simple_bayes = get_bayes_rows(edge_strength)
-    hmm_bayes = get_hmm_rows(edge_strength)
+    hmm_bayes = get_hmm_rows(image_array,edge_strength)
     imageio.imwrite('edges.png', uint8(255 * edge_strength / (amax(edge_strength))))
 
     # You'll need to add code here to figure out the results! For now,
