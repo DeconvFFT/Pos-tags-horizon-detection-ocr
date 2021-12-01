@@ -2,6 +2,7 @@ python3 polar.py test_images/23.png 23 22 111 106
 python3 polar.py test_images/23.png 23 22 164 59
 python3 polar.py test_images/23.png 23 22 107 93
 python3 polar.py test_images/23.png 23 22 52 128
+python3 polar.py test_images/23.png 193 27 111 106
 
 python3 polar.py test_images/09.png 134 22 9 53 
 python3 polar.py test_images/16.png 21 22 169 48 
