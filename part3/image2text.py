@@ -25,7 +25,7 @@ def calculate_emission_probabilities(train_letters,test_letters):
                             for y in range(CHARACTER_WIDTH) if (train_letters[train][x][y]==test_letters[letter][x][y] and test_letters[letter][x][y]=='*')])
             number_of_empty_pixels = len([(train_letters[train][x][y],test_letters[letter][x][y]) for x in range(CHARACTER_HEIGHT) \
                             for y in range(CHARACTER_WIDTH) if (train_letters[train][x][y]==test_letters[letter][x][y] and test_letters[letter][x][y]==' ')])
-            emission_cost = (number_matching_pixels_pixels) * 0.8 + (number_of_empty_pixels) * 0.2
+            emission_cost = (number_matching_pixels_pixels) * 0.8 + (number_of_empty_pixels) * 0.15
             emission_count[letter][train] = emission_cost
     for letter in range(len(test_letters)):
         for train in train_letters:
@@ -46,23 +46,26 @@ def calculate_initial_probabilities(data,total_letter_list):
         initial_probabilities[dict_letter] = (initial_count[dict_letter] + 1) / (sum(initial_count.values()) + 2)
     return initial_probabilities
 
-def calculate_transition_probabilities(data,total_letter_list):
-    added_string = ' '.join([word for word in data])
-    # print(added_string)
-    # print(len(added_string))
-    transition_count = np.zeros((len(total_letter_list),len(total_letter_list)))
-    
-    for letter in range(len(added_string)-1):
-        if added_string[letter] in total_letter_list and added_string[letter+1] in total_letter_list:
-            one = total_letter_list.index(added_string[letter])
-            two = total_letter_list.index(added_string[letter+1])
-            transition_count[one,two]+=1
-    rows_sum = np.sum(transition_count,axis=1)
 
+def calculate_transition_probabilities_dictionary(data,total_letter_list):
+    added_string = ' '.join([word for word in data])
+    transition_count = {}
+    transition_probabilities = {}
+    for letter in total_letter_list:
+        transition_count[letter] = {}
+        transition_probabilities[letter] = {}
+        for next_letter in total_letter_list:
+            transition_count[letter][next_letter] = 0
+            transition_probabilities[letter][next_letter] = -np.inf
+    for letter in range(1,len(added_string)):
+        if added_string[letter] in total_letter_list and added_string[letter-1] in total_letter_list:
+            transition_count[added_string[letter-1]][added_string[letter]] += 1
     for i in range(len(total_letter_list)):
         for j in range(len(total_letter_list)):
-            transition_count[i,j] = (transition_count[i,j] + 1) / (rows_sum[i]+2)
-    return transition_count
+            transition_probabilities[total_letter_list[i]][total_letter_list[j]] = (transition_count[total_letter_list[i]][total_letter_list[j]]+1)/(sum(transition_count[total_letter_list[i]].values())+2)
+        
+    return transition_probabilities
+
 
     
 def load_letters(fname):
@@ -99,11 +102,11 @@ def calculate_using_bayes(test_letters,train_letters):
     return bayes_string
     
 
+
 def calculated_using_viterbi(data,train_word_list,test_letters,train_letters,lines):
     emission_probabilities = calculate_emission_probabilities(train_letters,test_letters)
     initial_probabilities = calculate_initial_probabilities(lines,train_word_list)
-    transition_probabilities = calculate_transition_probabilities(data, train_word_list)
-    
+    transition_probabilities = calculate_transition_probabilities_dictionary(data, train_word_list)    
     # print(initial_probabilities)
     # temp_word_list = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
     
@@ -118,10 +121,10 @@ def calculated_using_viterbi(data,train_word_list,test_letters,train_letters,lin
             
             else:
                 storing_probabilities[train][letter] = np.max([storing_probabilities[t][letter-1]
-                        +np.log(transition_probabilities[t,train])*0.01
+                        +np.log(transition_probabilities[train_word_list[t]][train_word_list[train]])*0.05
                         +np.log(emission_probabilities[letter][train_word_list[train]]) for t in range(len(train_word_list))])
                 storing_letter[train][letter] = np.argmax([storing_probabilities[t][letter-1]
-                        +np.log(transition_probabilities[t,train])*0.01
+                        +np.log(transition_probabilities[train_word_list[t]][train_word_list[train]])*0.05
                         +np.log(emission_probabilities[letter][train_word_list[train]]) for t in range(len(train_word_list))])
 
     best_pointer =np.argmax([storing_probabilities[t][len(test_letters)-1] for t in range(len(train_word_list))])
@@ -160,5 +163,4 @@ viterbi = calculated_using_viterbi(data,TRAIN_LETTERS,test_letters,train_letters
 # The final two lines of your output should look something like this:
 print("Simple: " + bayes)
 print("   HMM: " + viterbi) 
-
 
