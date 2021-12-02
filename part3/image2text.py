@@ -25,7 +25,7 @@ def calculate_emission_probabilities(train_letters,test_letters):
                             for y in range(CHARACTER_WIDTH) if (train_letters[train][x][y]==test_letters[letter][x][y] and test_letters[letter][x][y]=='*')])
             number_of_empty_pixels = len([(train_letters[train][x][y],test_letters[letter][x][y]) for x in range(CHARACTER_HEIGHT) \
                             for y in range(CHARACTER_WIDTH) if (train_letters[train][x][y]==test_letters[letter][x][y] and test_letters[letter][x][y]==' ')])
-            emission_cost = (number_matching_pixels_pixels) * 0.8 + (number_of_empty_pixels) * 0.15
+            emission_cost = (number_matching_pixels_pixels) * 0.9 + (number_of_empty_pixels) * 0.15
             emission_count[letter][train] = emission_cost
     for letter in range(len(test_letters)):
         for train in train_letters:
@@ -121,10 +121,10 @@ def calculated_using_viterbi(data,train_word_list,test_letters,train_letters,lin
             
             else:
                 storing_probabilities[train][letter] = np.max([storing_probabilities[t][letter-1]
-                        +np.log(transition_probabilities[train_word_list[t]][train_word_list[train]])*0.05
+                        +np.log(transition_probabilities[train_word_list[t]][train_word_list[train]])*0.01
                         +np.log(emission_probabilities[letter][train_word_list[train]]) for t in range(len(train_word_list))])
                 storing_letter[train][letter] = np.argmax([storing_probabilities[t][letter-1]
-                        +np.log(transition_probabilities[train_word_list[t]][train_word_list[train]])*0.05
+                        +np.log(transition_probabilities[train_word_list[t]][train_word_list[train]])*0.01
                         +np.log(emission_probabilities[letter][train_word_list[train]]) for t in range(len(train_word_list))])
 
     best_pointer =np.argmax([storing_probabilities[t][len(test_letters)-1] for t in range(len(train_word_list))])
