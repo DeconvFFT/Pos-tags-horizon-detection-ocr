@@ -14,205 +14,58 @@ import numpy as np
 CHARACTER_WIDTH=14
 CHARACTER_HEIGHT=25
 
-# def calculate_emission_probabilities(train_letters,test_letters):
-#     emission_probabilities = {}
-#     emission_count = {}
-#     for letter in range(len(test_letters)):
-#         emission_probabilities[letter] = {}
-#         emission_count[letter] = {}
-#         for train in train_letters:
-#             number_matching_pixels = len([(train_letters[train][x][y],test_letters[letter][x][y]) for x in range(CHARACTER_HEIGHT) \
-#                             for y in range(CHARACTER_WIDTH) if (train_letters[train][x][y]==test_letters[letter][x][y] and test_letters[letter][x][y]=='*')])
-#             if len([x for x in range(CHARACTER_HEIGHT) for y in range(CHARACTER_WIDTH) if test_letters[letter][x][y]=='*']) < 20:    
-#                 if train==' ' and number_matching_pixels < 5:
-#                     emission_count[letter][train] = 5
-#                 else:
-#                     emission_count[letter][train] = number_matching_pixels
-#             else:   
-#                 emission_count[letter][train] = number_matching_pixels
-#     for letter in range(len(test_letters)):
-#         for train in train_letters:
-#             prob = round(emission_count[letter][train] / sum(emission_count[letter].values()),6)
-#             if prob==0:
-#                 emission_probabilities[letter][train] = round(1/999999,6)
-#             else:
-#                 emission_probabilities[letter][train] = prob
-#     return emission_probabilities 
-
-# def calculate_emission_probabilities(train_letters,test_letters):
-#     emission_probabilities = {}
-#     emission_count = {}
-#     for letter in range(len(test_letters)):
-#         emission_probabilities[letter] = {}
-#         emission_count[letter] = {}
-#         for train in train_letters:
-#             number_matching_pixels_pixels = len([(train_letters[train][x][y],test_letters[letter][x][y]) for x in range(CHARACTER_HEIGHT) \
-#                             for y in range(CHARACTER_WIDTH) if (train_letters[train][x][y]==test_letters[letter][x][y] and test_letters[letter][x][y]=='*')])
-#             number_of_empty_pixels = len([(train_letters[train][x][y],test_letters[letter][x][y]) for x in range(CHARACTER_HEIGHT) \
-#                             for y in range(CHARACTER_WIDTH) if (train_letters[train][x][y]==test_letters[letter][x][y] and test_letters[letter][x][y]==' ')])
-#             emission_cost = (number_matching_pixels_pixels) * 0.9 + (number_of_empty_pixels) * 0.1
-#             emission_count[letter][train] = emission_cost
-#     for letter in range(len(test_letters)):
-#         for train in train_letters:
-#             prob = round(emission_count[letter][train] / sum(emission_count[letter].values()),25)
-#             if prob==0:
-#                 emission_probabilities[letter][train] = round(1/999999999999999999999999,25)
-#             else:
-#                 emission_probabilities[letter][train] = prob
-#     return emission_probabilities
-
-
-def calculate_emission_probabilities(train_letters,test_letters):
+def calculate_emission_probabilities(train_letters,test_letters):#Calculating emission probabilities
     emission_probabilities = {}
     emission_count = {}
     for letter in range(len(test_letters)):
-        emission_probabilities[letter] = {}
+        emission_probabilities[letter] = {}#Creating a empty dictionary inside a letter key such as {0:{'A':0.343,'B':0.324,....},1:{'A':0.343,'B':0.324,...}}} where 0,1 are are index of the test letters
         emission_count[letter] = {}
-        for train in train_letters:
+        for train in train_letters:#we are checking the emission probability for all possible characters mentioned in the TRAIN_LETTER variable
             number_matching_pixels_pixels = len([(train_letters[train][x][y],test_letters[letter][x][y]) for x in range(CHARACTER_HEIGHT) \
-                            for y in range(CHARACTER_WIDTH) if (train_letters[train][x][y]==test_letters[letter][x][y] and test_letters[letter][x][y]=='*')])
+                            for y in range(CHARACTER_WIDTH) if (train_letters[train][x][y]==test_letters[letter][x][y] and test_letters[letter][x][y]=='*')])#check how many pixels match where pixel is '*'
             number_of_empty_pixels = len([(train_letters[train][x][y],test_letters[letter][x][y]) for x in range(CHARACTER_HEIGHT) \
-                            for y in range(CHARACTER_WIDTH) if (train_letters[train][x][y]==test_letters[letter][x][y] and test_letters[letter][x][y]==' ')])
-            emission_cost = (number_matching_pixels_pixels) * 0.80 + (number_of_empty_pixels) * 0.20
+                            for y in range(CHARACTER_WIDTH) if (train_letters[train][x][y]==test_letters[letter][x][y] and test_letters[letter][x][y]==' ')])#check how many pixels match where pixel is ' '(empty)
+            emission_cost = (number_matching_pixels_pixels) * 0.9 + (number_of_empty_pixels) * 0.1#Assigning these values to get better result, derived these values after trying a myriad of combinations
             emission_count[letter][train] = emission_cost
     for letter in range(len(test_letters)):
         for train in train_letters:
             # emission_probabilities[letter][train] = (emission_count[letter][train] + 1) / (sum(emission_count[letter].values())+ len(train_letters) * 2) #referenced from https://www.analyticsvidhya.com/blog/2021/04/improve-naive-bayes-text-classifier-using-laplace-smoothing/
-            emission_probabilities[letter][train] = (emission_count[letter][train] + 1) / (sum(emission_count[letter].values())+ 2)
+            emission_probabilities[letter][train] = (emission_count[letter][train] + 1) / (sum(emission_count[letter].values())+ 2)#smoothing the probability
     return emission_probabilities
 
 
 def calculate_initial_probabilities(data,total_letter_list):
     initial_count = {}
     initial_probabilities = {}
-    for letter in total_letter_list:
+    for letter in total_letter_list:#this dictionary would look like {'A':0.343,'B':034343,.....,' ':0.00122}
         initial_count[letter] = 0
-    for word in data:
-        if word[0] in total_letter_list:
-            initial_count[word[0]] += 1
+    for word in range(len(data)):#this is the sentence list
+        if data[word][0] in total_letter_list:#checking if the first letter of the sentence is inside the given TRAIN_LETTERS list or not
+            initial_count[data[word][0]] += 1
     for dict_letter in initial_count:
-        # initial_probabilities[dict_letter] = (initial_count[dict_letter] + 1) / (sum(initial_count.values())+ len(total_letter_list) * 2)
-        initial_probabilities[dict_letter] = (initial_count[dict_letter] + 1) / (sum(initial_count.values()) + 2)
+        initial_probabilities[dict_letter] = (initial_count[dict_letter] + 1) / (sum(initial_count.values()) + 2)#calcualting the probability
     return initial_probabilities
 
-# def calculate_initial_probabilities(data,total_letter_list):
-#     initial_count = {}
-#     initial_probabilities = {}
-#     for letter in total_letter_list:
-#         initial_count[letter] = 0
-#     for word in data:
-#         if word[0] in total_letter_list:
-#             initial_count[word[0]] += 1
-#     for dict_letter in initial_count:
-#         prob = round(initial_count[dict_letter] / sum(initial_count.values()),25)
-#         if prob==0:
-#             initial_probabilities[dict_letter] = round(1/999999999999999999999999,25)
-#         else:
-#             initial_probabilities[dict_letter] = prob
-#     return initial_probabilities
 
-
-# def calculate_transition_probabilities(data,total_letter_list):
-#     transition_count = {}
-#     transition_probabilities = {}
-#     for letter in total_letter_list:
-#         transition_count[letter] = {}
-#         transition_probabilities[letter] = {}
-#         for next_letter in total_letter_list:
-#             transition_count[letter][next_letter] = 0
-#             transition_probabilities[letter][next_letter] = round(1/999999999999999999999999,25)
-#     for word in data:
-#         for word_index in range(1,len(word)):
-#             if (word[word_index] in total_letter_list) and (word[word_index-1] in total_letter_list):
-#                 transition_count[word[word_index-1]][word[word_index]] += 1
-#     for letter in total_letter_list:
-#         for next_letter in total_letter_list:
-#             if sum(transition_count[letter].values()) != 0 and round(transition_count[letter][next_letter] / sum(transition_count[letter].values()),25) != 0:
-#                 transition_probabilities[letter][next_letter] = round(transition_count[letter][next_letter] / sum(transition_count[letter].values()),25)
-#             else:
-#                 pass
-#     return transition_probabilities
-
-def calculate_transition_probabilities(data,total_letter_list):
-    added_string = ' '.join([word for word in data])
-    # print(added_string)
-    # print(len(added_string))
-    transition_count = np.zeros((len(total_letter_list),len(total_letter_list)))
-    
-    for letter in range(len(added_string)-1):
-        if added_string[letter] in total_letter_list and added_string[letter+1] in total_letter_list:
-            one = total_letter_list.index(added_string[letter])
-            two = total_letter_list.index(added_string[letter+1])
-            transition_count[one,two]+=1
-    rows_sum = np.sum(transition_count,axis=1)
-
+def calculate_transition_probabilities_dictionary(data,total_letter_list):
+    added_string = ' '.join([word for word in data])#Joining all the words list so that we could use it for training
+    transition_count = {}
+    transition_probabilities = {}
+    for letter in total_letter_list:#iterate over TRAIN_LETTERS
+        transition_count[letter] = {}#add a key in disctionary - {'A':{},'B':{},....}
+        transition_probabilities[letter] = {}
+        for next_letter in total_letter_list:
+            transition_count[letter][next_letter] = 0# {'A':{'A':0,'B':0,.....},'B':{'A':0,'B':0}}
+            transition_probabilities[letter][next_letter] = -np.inf#set the value as infinity
+    for letter in range(1,len(added_string)):
+        if added_string[letter] in total_letter_list and added_string[letter-1] in total_letter_list:
+            transition_count[added_string[letter-1]][added_string[letter]] += 1#calculating the count
     for i in range(len(total_letter_list)):
         for j in range(len(total_letter_list)):
-            transition_count[i,j] = (transition_count[i,j] + 1) / (rows_sum[i]+2)
-    return transition_count
+            transition_probabilities[total_letter_list[i]][total_letter_list[j]] = (transition_count[total_letter_list[i]][total_letter_list[j]]+1)/(sum(transition_count[total_letter_list[i]].values())+2)#calculating the probability
+        
+    return transition_probabilities
 
-# def calculate_transition_probabilities(data,total_letter_list):
-#     transition_count = {}
-#     transition_probabilities = {}
-#     for letter in total_letter_list:
-#         transition_count[letter] = {}
-#         transition_probabilities[letter] = {}
-#         for next_letter in total_letter_list:
-#             transition_count[letter][next_letter] = 0
-#             transition_probabilities[letter][next_letter] = round(1/999999999999999999999999,25)
-#     for word in data:
-#         for word_index in range(1,len(word)):
-#             if (word[word_index] in total_letter_list) and (word[word_index-1] in total_letter_list):
-#                 transition_count[word[word_index]][word[word_index-1]] += 1
-#     for letter in total_letter_list:
-#         for next_letter in total_letter_list:
-#             if sum(transition_count[letter].values()) != 0 and round(transition_count[letter][next_letter] / sum(transition_count[letter].values()),25) != 0:
-#                 transition_probabilities[letter][next_letter] = round(transition_count[letter][next_letter] / sum(transition_count[letter].values()),25)
-#             else:
-#                 pass
-#     return transition_probabilities
-
-
-# def calculate_transition_probabilities(data,total_letter_list):
-#     transition_count = {}
-#     transition_probabilities = {}
-#     for letter in total_letter_list:
-#         transition_count[letter] = {}
-#         transition_probabilities[letter] = {}
-#         for next_letter in total_letter_list:
-#             transition_count[letter][next_letter] = 0
-#     for word in data:
-#         for word_index in range(1,len(word)):
-#             if (word[word_index] in total_letter_list) and (word[word_index-1] in total_letter_list):
-#                 transition_count[word[word_index]][word[word_index-1]] += 1
-#     for letter in total_letter_list:
-#         for next_letter in total_letter_list:
-#             # transition_probabilities[letter][next_letter] = (transition_count[letter][next_letter]+1) / (sum(transition_count[letter].values()) + len(total_letter_list) * 2)
-#             transition_probabilities[letter][next_letter] = (transition_count[letter][next_letter]+1) / (sum(transition_count[letter].values()) + 100)
-#     return transition_probabilities
-
-# def calculate_transition_probabilities(data,total_letter_list):
-#     transition_count = {}
-#     transition_probabilities = {}
-#     for letter in total_letter_list:
-#         transition_count[letter] = {}
-#         transition_probabilities[letter] = {}
-#         for next_letter in total_letter_list:
-#             transition_count[letter][next_letter] = 0
-#     for word in data:
-#         for word_index in range(1,len(word)):
-#             if (word[word_index] in total_letter_list) and (word[word_index-1] in total_letter_list):
-#                 transition_count[word[word_index]][word[word_index-1]] += 1
-#     for letter in total_letter_list:
-#         for next_letter in total_letter_list:
-#             # transition_probabilities[letter][next_letter] = (transition_count[letter][next_letter]+1) / (sum(transition_count[letter].values()) + len(total_letter_list) * 2)
-#             # transition_probabilities[letter][next_letter] = (transition_count[letter][next_letter]+1) / (sum(transition_count[letter].values()) + 100)
-#             alpha = 1
-#             transition_probabilities[letter][next_letter] = (transition_count[letter][next_letter]+alpha) / (sum(transition_count[letter].values()) + 2 * alpha)
-#             # transition_probabilities[letter][next_letter] = (transition_count[letter][next_letter]+alpha) / (len(transition_count[letter]) + 2 * alpha)
-#     return transition_probabilities
-
-# def word_emission_probability(letter,test_word,train_list):
 
     
 def load_letters(fname):
@@ -248,102 +101,30 @@ def calculate_using_bayes(test_letters,train_letters):
         bayes_string += max_key
     return bayes_string
     
-# def calculated_using_viterbi(data,train_word_list,test_letters,train_letters):
-#     emission_probabilities = calculate_emission_probabilities(train_letters,test_letters)
-#     test_string = ''
-#     for letter in emission_probabilities:
-#         max_key = max(emission_probabilities[letter], key=emission_probabilities[letter].get)
-#         test_string += max_key
-    
-#     initial_probabilities = calculate_initial_probabilities(data,train_word_list)
-#     transition_probabilities = calculate_transition_probabilities(data, train_word_list)
-#     # print(transition_probabilities)
-#     temp_word_list = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-#     words_separated = test_string.split(' ')
-#     print(words_separated)
-#     counter = 0
-#     for word in words_separated:
-#         storing_probabilities = np.ones((len(train_word_list),len(word)))
-#         storing_letter = np.ones((len(train_word_list),len(word)))
-#         # print(storing_probabilities.shape)
-#         for letter in range(len(word)):
-#             for train in range(len(train_word_list)):
-#                 if letter==0:
-#                     storing_probabilities[train][letter] =  np.log(emission_probabilities[counter][train_word_list[train]]) 
-#                                     #   + np.log(initial_probabilities[train_word_list[train]])
-#                     storing_letter[train][letter] = train
-#                     # print("Initial:",counter,letter,train)
-#                     # print("First letter",word[letter],train_word_list[train],storing_probabilities[train][letter])
-#                 # elif word[letter] in temp_word_list:
-#                 #     # storing_probabilities[train][letter] = np.max([storing_probabilities[t][letter-1]*transition_probabilities[train_word_list[t]][train_word_list[train]]
-#                 #             # *emission_probabilities[counter][train_word_list[train]] for t in range(len(train_word_list))])
-#                 #     storing_probabilities[train][letter] = np.max([storing_probabilities[t][letter-1]
-#                 #             +np.log(transition_probabilities[train_word_list[train]][train_word_list[t]])*0.005
-#                 #             +np.log(emission_probabilities[counter][train_word_list[train]]) for t in range(len(train_word_list))])
-#                 #     # print(counter,letter,train)
-#                 #     # storing_letter[train][letter] = int(np.argmax([storing_probabilities[t][letter-1]*transition_probabilities[train_word_list[t]][train_word_list[train]] 
-#                 #             # *emission_probabilities[counter][train_word_list[train]] for t in range(len(train_word_list))]))
-#                 #     storing_letter[train][letter] = np.argmax([storing_probabilities[t][letter-1]
-#                 #             +np.log(transition_probabilities[train_word_list[train]][train_word_list[t]])*0.005
-#                 #             +np.log(emission_probabilities[counter][train_word_list[train]]) for t in range(len(train_word_list))])
-#                 #     # print(word[letter],train_word_list[train],storing_probabilities[train][letter])
-#                 else:
-#                     storing_probabilities[train][letter] = np.max([storing_probabilities[t][letter-1]
-#                             +np.log(transition_probabilities[t,train])
-#                             +np.log(emission_probabilities[counter][train_word_list[train]]) for t in range(len(train_word_list))])
-#                     storing_letter[train][letter] = np.argmax([storing_probabilities[t][letter-1]
-#                             +np.log(transition_probabilities[t,train])
-#                             +np.log(emission_probabilities[counter][train_word_list[train]]) for t in range(len(train_word_list))])
 
-#             counter+=1
-#             # print(counter,storing_probabilities)
-#         counter+=1
-#         # print(storing_probabilities)
-#         best_pointer =np.argmax([storing_probabilities[t][len(word)-1] for t in range(len(train_word_list))])
-#         backtrack = []
-#         temp_best_pointer = best_pointer
-#         # backtrack.append(train_word_list[temp_best_pointer])
-#         print(len(word))
-#         for back_pos in range(len(word),0,-1):
-#             temp = train_word_list[temp_best_pointer]
-#             backtrack.append(temp)
-#             temp_best_pointer = int(storing_letter[temp_best_pointer][back_pos-1])    
-#         print(backtrack[::-1])
-#         # print(best_word_string)
-        
-#     return 'now'
 
-def calculated_using_viterbi(data,train_word_list,test_letters,train_letters):
+def calculated_using_viterbi(data,train_word_list,test_letters,train_letters,lines):
     emission_probabilities = calculate_emission_probabilities(train_letters,test_letters)
-    initial_probabilities = calculate_initial_probabilities(data,train_word_list)
-    transition_probabilities = calculate_transition_probabilities(data, train_word_list)
+    initial_probabilities = calculate_initial_probabilities(lines,train_word_list)
+    transition_probabilities = calculate_transition_probabilities_dictionary(data, train_word_list)    
     
-    temp_word_list = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-    
-    
-    storing_probabilities = np.ones((len(train_word_list),len(test_letters)))
-    storing_letter = np.ones((len(train_word_list),len(test_letters)))
-    for letter in range(len(test_letters)):    
-        for train in range(len(train_word_list)):
-            if letter==0:
-                storing_probabilities[train][letter] =  np.log(emission_probabilities[letter][train_word_list[train]]) + (np.log(initial_probabilities[train_word_list[train]]) * 0.01)
-                storing_letter[train][letter] = train
-            # elif train_word_list[train] in temp_word_list:
-            #     storing_probabilities[train][letter] = np.max([storing_probabilities[t][letter-1]
-            #             +np.log(transition_probabilities[t,train])*0.01
-            #             +np.log(emission_probabilities[letter][train_word_list[train]]) for t in range(len(train_word_list))])
-            #     storing_letter[train][letter] = np.argmax([storing_probabilities[t][letter-1]
-            #             +np.log(transition_probabilities[t,train])*0.01
-            #             +np.log(emission_probabilities[letter][train_word_list[train]]) for t in range(len(train_word_list))])
+    storing_probabilities = np.ones((len(train_word_list),len(test_letters)))#create a matrix with rows representing hidden states of given observed state
+    storing_letter = np.ones((len(train_word_list),len(test_letters)))#creating the matrix that stores max of indexes of previous observed state
+    for letter in range(len(test_letters)):#for each letter in test_letter we want to predict    
+        for train in range(len(train_word_list)):#compute over all hidden states at given observed state 
+            if letter==0:#if it is the first letter we only compute emission and initial probability
+                storing_probabilities[train][letter] =  np.log(emission_probabilities[letter][train_word_list[train]]) + np.log(initial_probabilities[train_word_list[train]]) * 0.01
+                storing_letter[train][letter] = train#current hidden state value is considered max
+            
             else:
                 storing_probabilities[train][letter] = np.max([storing_probabilities[t][letter-1]
-                        +np.log(transition_probabilities[t,train])*0.01
-                        +np.log(emission_probabilities[letter][train_word_list[train]]) for t in range(len(train_word_list))])
+                        +np.log(transition_probabilities[train_word_list[t]][train_word_list[train]])*0.01
+                        +np.log(emission_probabilities[letter][train_word_list[train]]) for t in range(len(train_word_list))])#store the maximum value
                 storing_letter[train][letter] = np.argmax([storing_probabilities[t][letter-1]
-                        +np.log(transition_probabilities[t,train])*0.01
-                        +np.log(emission_probabilities[letter][train_word_list[train]]) for t in range(len(train_word_list))])
+                        +np.log(transition_probabilities[train_word_list[t]][train_word_list[train]])*0.01
+                        +np.log(emission_probabilities[letter][train_word_list[train]]) for t in range(len(train_word_list))])#store the index of maximum value we get from previous hidden state
 
-    best_pointer =np.argmax([storing_probabilities[t][len(test_letters)-1] for t in range(len(train_word_list))])
+    best_pointer =np.argmax([storing_probabilities[t][len(test_letters)-1] for t in range(len(train_word_list))])#Last observed state maximum value and its index to backtrack
     backtrack = []
     temp_best_pointer = best_pointer
     for back_pos in range(len(test_letters),0,-1):
@@ -352,7 +133,7 @@ def calculated_using_viterbi(data,train_word_list,test_letters,train_letters):
         temp_best_pointer = int(storing_letter[temp_best_pointer][back_pos-1])   
     
         
-    return ''.join(backtrack[::-1])
+    return ''.join(backtrack[::-1])#reversing the backtracked list
 
 
 #####
@@ -366,14 +147,17 @@ test_letters = load_letters(test_img_fname)
 TRAIN_LETTERS="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789(),.-!?\"' "
 data = read_data(train_txt_fname)
 
+f = open(train_txt_fname,'r')
+lines = f.readlines()
+
+
 bayes = calculate_using_bayes(test_letters,train_letters)
 
 
-viterbi = calculated_using_viterbi(data,TRAIN_LETTERS,test_letters,train_letters)
+viterbi = calculated_using_viterbi(data,TRAIN_LETTERS,test_letters,train_letters,lines)
 
 
 # The final two lines of your output should look something like this:
 print("Simple: " + bayes)
 print("   HMM: " + viterbi) 
-
 
